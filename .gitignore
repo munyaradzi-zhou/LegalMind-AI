@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Azure
+.azure/
+*.tfstate
+*.tfstate.backup
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# MyPy
+.mypy_cache/
+
+# Ruff
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit
+**/secrets/
+*.pem
+*.key
+
+# Test reports
+pytest-results.xml
+
+# Private notes and learning material (kept locally, never published)
+notes/
+
+# Evaluation run outputs (copy the ones you want to keep into notes/)
+tests/evaluation/results/
+
+# Generated environment files (scripts/azure-env.sh)
+.env.azure

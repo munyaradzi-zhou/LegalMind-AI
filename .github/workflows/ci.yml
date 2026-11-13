@@ -1,0 +1,148 @@
+# =============================================================================
+# LegalMind AI — CI
+# Quality gates for every push and pull request: lint, types, tests with
+# coverage, security scan, infrastructure compile, container builds, shellcheck.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "*.md"]
+  pull_request:
+    branches: [main]
+    paths-ignore: ["docs/**", "*.md"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  quality:
+    name: Lint, types, tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev,frontend]"
+
+      - name: Ruff (lint)
+        run: ruff check src tests --output-format=github
+
+      - name: Ruff (format)
+        run: ruff format --check src tests
+
+      - name: Mypy (strict)
+        run: mypy src/legalmind
+
+      - name: Unit tests
+        run: >-
+          pytest tests/unit
+          --cov=legalmind --cov-report=term-missing --cov-report=xml
+          --junitxml=pytest-results.xml
+
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            pytest-results.xml
+            coverage.xml
+          retention-days: 14
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Bandit (fails on medium severity and above)
+        run: |
+          pip install bandit
+          bandit -r src/legalmind --severity-level medium --confidence-level medium
+
+      - name: Dependency audit (installed packages)
+        run: |
+          pip install --upgrade pip setuptools
+          pip install -e . pip-audit
+          pip-audit --progress-spinner off --skip-editable
+
+  infrastructure:
+    name: Bicep build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile templates and parameter files
+        run: |
+          az bicep install
+          az bicep build --file infra/main.bicep --stdout > /dev/null
+          for params in infra/parameters/*.bicepparam; do
+            az bicep build-params --file "$params" --stdout > /dev/null
+          done
+
+  containers:
+    name: Container builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          load: true
+          tags: legalmind-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Start the API image and check /health
+        run: |
+          docker run -d --name api -p 8000:8000 legalmind-api:ci
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8000/health && exit 0
+            sleep 2
+          done
+          docker logs api
+          exit 1
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  scripts:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck scripts/
+        run: shellcheck scripts/*.sh

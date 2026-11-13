@@ -1,0 +1,33 @@
+# Streamlit theme — "Paper & Ember" design system.
+# Colours and fonts only; component styling lives in src/frontend/components/theme.py.
+
+[theme]
+base = "light"
+backgroundColor = "#E8E3D2"           # paper
+secondaryBackgroundColor = "#FAF4E8"  # surface (inputs, raised areas)
+textColor = "#14130C"                 # ink
+primaryColor = "#A14C3F"              # ember-deep (buttons, focus, active tab: small text sizes)
+linkColor = "#A14C3F"                 # ember-deep
+borderColor = "#D3CEBB"               # rule
+codeBackgroundColor = "#DED9C6"       # inset
+showWidgetBorder = true
+baseRadius = "8px"                    # radius-sm
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+headingFont = "Newsreader:https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap"
+redColor = "#A14C3F"                  # ember-deep
+orangeColor = "#D66949"               # signal
+blueColor = "#7369AD"                 # violet
+violetColor = "#7369AD"               # violet
+greenColor = "#656456"                # slate
+grayColor = "#5F594A"                 # ink-muted
+
+[theme.sidebar]
+backgroundColor = "#E4DDCC"           # panel
+secondaryBackgroundColor = "#FAF4E8"  # surface
+
+[client]
+toolbarMode = "viewer"   # hide the developer toolbar (Deploy button)
+
+[browser]
+gatherUsageStats = false

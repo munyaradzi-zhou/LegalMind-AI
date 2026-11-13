@@ -1,0 +1,77 @@
+# =============================================================================
+# LegalMind AI — CD
+#
+# After CI passes on main: deploy the tested commit to dev, then staging, then
+# prod. Each stage runs scripts/deploy.sh (Bicep → images → roll out → smoke
+# tests). Prod waits for approval via the "production" environment's protection
+# rules. Azure access is passwordless (OIDC federated credential).
+#
+# Repository/environment variables: AZURE_CLIENT_ID, AZURE_TENANT_ID,
+# AZURE_SUBSCRIPTION_ID, APIM_PUBLISHER_EMAIL. Until AZURE_CLIENT_ID is set the
+# workflow skips, so forks and fresh clones stay green. Staging and prod run only
+# when DEPLOY_STAGING / DEPLOY_PROD are 'true' (each needs its own resource group
+# and federated credential).
+# =============================================================================
+
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deploy only this environment
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDC login to Azure
+  contents: read
+
+jobs:
+  dev:
+    if: >-
+      vars.AZURE_CLIENT_ID != '' &&
+      (github.event_name == 'workflow_dispatch' && inputs.environment == 'dev' ||
+       github.event.workflow_run.conclusion == 'success')
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: dev
+      sha: ${{ github.event.workflow_run.head_sha || github.sha }}
+    secrets: inherit
+
+  staging:
+    needs: dev
+    if: github.event_name == 'workflow_run' && vars.DEPLOY_STAGING == 'true'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+      sha: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
+
+  prod:
+    needs: staging
+    if: github.event_name == 'workflow_run' && vars.DEPLOY_PROD == 'true'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: prod
+      sha: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
+
+  manual:
+    if: >-
+      vars.AZURE_CLIENT_ID != '' &&
+      github.event_name == 'workflow_dispatch' && inputs.environment != 'dev'
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: ${{ inputs.environment }}
+      sha: ${{ github.sha }}
+    secrets: inherit

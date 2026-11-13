@@ -1,0 +1,23 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# LegalMind AI — Streamlit frontend image
+# =============================================================================
+# The API image only contains the backend dependencies, so the frontend gets
+# its own small image with Streamlit and httpx.
+# =============================================================================
+FROM python:3.11-slim
+
+RUN groupadd -r legalmind && useradd -r -g legalmind -d /app -s /sbin/nologin legalmind
+
+WORKDIR /app
+# Behind a TLS-intercepting proxy, pass its CA bundle: --secret id=ca_cert,src=<bundle.pem>
+RUN --mount=type=secret,id=ca_cert,required=false \
+    if [ -f /run/secrets/ca_cert ]; then export PIP_CERT=/run/secrets/ca_cert; fi && \
+    pip install --no-cache-dir "streamlit>=1.50.0" "httpx>=0.27.0"
+COPY src/frontend/ ./src/frontend/
+COPY .streamlit/ ./.streamlit/
+
+ENV PYTHONUNBUFFERED=1
+USER legalmind
+EXPOSE 8501
+CMD ["streamlit", "run", "src/frontend/app.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]

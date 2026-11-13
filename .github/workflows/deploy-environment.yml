@@ -1,0 +1,43 @@
+# Reusable: deploy one commit to one environment with scripts/deploy.sh.
+name: Deploy environment
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      sha:
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: ${{ inputs.environment == 'prod' && 'production' || inputs.environment }}
+      url: ${{ steps.deploy.outputs.frontend-url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+          fetch-depth: 0 # deploy.sh compares infra/ with the commit that's running now
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy
+        id: deploy
+        env:
+          APIM_PUBLISHER_EMAIL: ${{ vars.APIM_PUBLISHER_EMAIL }}
+        run: bash scripts/deploy.sh --environment "${{ inputs.environment }}" --tag "${{ inputs.sha }}"

@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*.egg-info
+dist
+build
+.eggs
+.venv
+venv
+
+# IDE
+.vscode
+.idea
+
+# Testing
+.pytest_cache
+htmlcov
+.coverage
+.mypy_cache
+.ruff_cache
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs
+docs/
+notebooks/
+*.md
+!README.md
+
+# CI/CD
+.github/
+scripts/
+
+# Infra
+infra/
+
+# Env files
+.env
+.env.*
+
+# Sample data (not needed in container)
+sample_data/

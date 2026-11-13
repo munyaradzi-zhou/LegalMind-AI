@@ -1,0 +1,51 @@
+ZAAKSAMENVATTING
+
+Zaaknummer: VRB/2024/ZK-9012
+Zaaktype: Arbeidsrecht — Arbeidsongeval
+Status: In behandeling
+Aangemeld: 16 maart 2024
+Behandelaar: mr. A. van den Berg
+
+PARTIJEN
+Verzekerde: J. de Vries, BSN: [geanonimiseerd]
+Werkgever: Bouwbedrijf Van Dijk B.V., KvK: 12345678
+Verzekeraar werkgever: Voorbeeld Schadeverzekeringen N.V.
+
+FEITEN
+Op 15 maart 2024 is de heer De Vries tijdens zijn werkzaamheden als productiemedewerker gevallen van een onbeveiligde steiger op een hoogte van circa 3 meter bij het bouwproject aan de Industrieweg 42 te Rotterdam.
+
+De heer De Vries heeft als gevolg van het ongeval een gebroken linkerpols, gekneusde ribben en whiplashklachten opgelopen. De verwachte hersteltijd is 8-12 weken. De heer De Vries is momenteel volledig arbeidsongeschikt.
+
+JURIDISCHE ANALYSE
+De werkgever heeft op grond van art. 7:658 BW een zorgplicht voor een veilige werkomgeving. Uit voorlopig onderzoek blijkt:
+
+1. ARBEIDSINSPECTIE: De Arbeidsinspectie heeft op 18 maart 2024 een onderzoek ingesteld en een overtreding geconstateerd wegens het ontbreken van adequate valbeveiliging (art. 3.16 Arbobesluit).
+
+2. RI&E: De werkgever beschikte niet over een actuele Risico-Inventarisatie en -Evaluatie voor het betreffende bouwproject.
+
+3. INSTRUCTIE: Er zijn geen schriftelijke veiligheidsinstructies verstrekt aan de werknemers voor het werken op hoogte.
+
+4. JURISPRUDENTIE: Vergelijkbare zaken:
+   - HR 11 november 2011, ECLI:NL:HR:2011:BR5215 (werkgeversaansprakelijkheid bij ontbreken valbeveiliging)
+   - Rb. Rotterdam 14 mei 2020, ECLI:NL:RBROT:2020:4312 (vergelijkbare situatie bouwplaats)
+
+SCHADE (VOORLOPIG)
+- Medische kosten: €3.500
+- Inkomstenderving: €4.200 (8 weken x €525/week)
+- Reiskosten: €350
+- Smartengeld: geschat €5.000-€8.000 (op basis van ANWB Smartengeldgids)
+- Totale geschatte schade: €13.050 - €16.050
+
+STRATEGIE
+1. Aansprakelijkheidsstelling verstuurd op 22 maart 2024
+2. Wachten op reactie werkgever/verzekeraar (termijn: 14 dagen)
+3. Bij erkenning: onderhandelen over schadevergoeding
+4. Bij afwijzing: dagvaarding overwegen
+5. Parallel: letselschaderapport opvragen bij medisch adviseur
+
+VERVOLGACTIES
+- [ ] Reactie werkgever afwachten (deadline: 5 april 2024)
+- [ ] Medisch adviseur inschakelen voor letselschaderapport
+- [ ] Getuigenverklaringen verzamelen
+- [ ] Arbeidsdeskundige inschakelen indien nodig
+- [ ] Cliënt informeren over voortgang

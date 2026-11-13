@@ -1,0 +1,50 @@
+# =============================================================================
+# LegalMind AI — Local Development Docker Compose
+# =============================================================================
+# Usage: docker-compose up -d
+# API:       http://localhost:8000/docs
+# Frontend:  http://localhost:8501
+# =============================================================================
+
+services:
+  # ─── FastAPI Backend ─────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - APP_ENV=development
+      - APP_LOG_LEVEL=DEBUG
+      - APP_CORS_ORIGINS=["http://localhost:8501","http://localhost:3000"]
+      # Import the mounted source instead of the copy installed in the image, so --reload picks up edits
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./src:/app/src:ro  # Mount source for live reload
+    command: uvicorn legalmind.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # ─── Streamlit Frontend ──────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend  # the API image has no Streamlit
+    ports:
+      - "8501:8501"
+    environment:
+      - LEGALMIND_API_URL=http://api:8000
+    volumes:
+      - ./src/frontend:/app/src/frontend:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
