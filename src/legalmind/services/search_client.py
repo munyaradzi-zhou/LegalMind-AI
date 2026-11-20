@@ -78,6 +78,12 @@ class SearchService:
             logger.info("documents_uploaded", total=len(documents), succeeded=succeeded)
             return succeeded
 
+    async def merge_documents(self, documents: list[dict[str, Any]]) -> int:
+        """Update some fields of existing documents (each has its 'id'). Returns how many succeeded."""
+        async with self._get_search_client() as client:
+            result = await client.merge_documents(documents=documents)
+            return sum(1 for r in result if r.succeeded)
+
     async def hybrid_search(
         self,
         query: str,

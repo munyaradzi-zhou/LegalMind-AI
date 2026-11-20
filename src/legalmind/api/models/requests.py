@@ -17,7 +17,9 @@ class ChatRequest(BaseModel):
 
     message: str = Field(..., description="The user's message", min_length=1, max_length=10000)
     session_id: str | None = Field(None, description="Session ID for continuing a conversation")
-    user_id: str = Field(default="anonymous", description="User identifier")
+    user_id: str = Field(
+        default="anonymous", description="Ignored: the user is the one the sign-in token names (kept for old clients)"
+    )
     stream: bool = Field(default=False, description="Whether to stream the response via SSE")
     history: list[ChatMessage] | None = Field(None, description="Optional conversation history override")
     document_ids: list[str] | None = Field(None, description="Limit search to specific documents")

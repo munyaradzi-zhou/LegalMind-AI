@@ -60,7 +60,7 @@ async def test_describe_document_failure_doesnt_break_ingestion() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reingesting_removes_earlier_versions_by_title() -> None:
+async def test_reingesting_removes_earlier_versions_by_title_in_the_same_matter() -> None:
     search = MagicMock()
     search.find_ids = AsyncMock(return_value=["old_0", "old_1"])
     search.delete_documents = AsyncMock()
@@ -72,7 +72,9 @@ async def test_reingesting_removes_earlier_versions_by_title() -> None:
         openai_service=MagicMock(),
         search_service=search,
     )
-    removed = await pipeline._remove_earlier_versions("Polis van O'Brien.txt", "new")
+    removed = await pipeline._remove_earlier_versions("Polis van O'Brien.txt", "new", "BM/2026/V-0198")
     assert removed == 2
-    search.find_ids.assert_awaited_once_with("title eq 'Polis van O''Brien.txt' and document_id ne 'new'")
+    search.find_ids.assert_awaited_once_with(
+        "title eq 'Polis van O''Brien.txt' and document_id ne 'new' and matter eq 'BM/2026/V-0198'"
+    )
     search.delete_documents.assert_awaited_once_with(["old_0", "old_1"])

@@ -147,6 +147,24 @@ def _build_fields() -> list[SearchField]:
             filterable=True,
             sortable=True,
         ),
+        # ── Access control (see legalmind.access) ─────────────────────
+        SimpleField(
+            name="matter",
+            type=SearchFieldDataType.String,
+            filterable=True,
+            facetable=True,
+        ),
+        SimpleField(
+            name="allowed_groups",
+            type=SearchFieldDataType.Collection(SearchFieldDataType.String),
+            filterable=True,
+            hidden=True,  # filter only: group IDs are never returned to callers
+        ),
+        SimpleField(
+            name="privileged",
+            type=SearchFieldDataType.Boolean,
+            filterable=True,
+        ),
     ]
 
 

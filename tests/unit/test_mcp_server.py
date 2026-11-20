@@ -68,7 +68,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Request]:
             return httpx.Response(200, json={"document_id": "d2", "chunk_count": 3, "status": "completed"})
         return httpx.Response(404, json={"detail": "not found"})
 
-    def client() -> httpx.AsyncClient:
+    async def client() -> httpx.AsyncClient:
         return httpx.AsyncClient(base_url="http://api", transport=httpx.MockTransport(handler))
 
     monkeypatch.setattr(mcp_server, "_client", client)
@@ -100,9 +100,10 @@ async def test_ask_returns_answer_session_and_citations(api: list[httpx.Request]
 async def test_ingest_uploads_file(api: list[httpx.Request], tmp_path: Path) -> None:
     doc = tmp_path / "brief.txt"
     doc.write_text("Geachte heer,", encoding="utf-8")
-    result = await mcp_server.ingest_document(str(doc), document_type="correspondence")
+    result = await mcp_server.ingest_document(str(doc), "BM/2026/H-0412", document_type="correspondence")
     assert result["status"] == "completed"
     assert b'name="document_type"' in api[0].content
+    assert b"BM/2026/H-0412" in api[0].content  # the matter decides who may see it
     assert b"brief.txt" in api[0].content
 
 
@@ -110,7 +111,7 @@ async def test_ingest_rejects_unsupported_type(tmp_path: Path) -> None:
     bad = tmp_path / "script.exe"
     bad.write_bytes(b"x")
     with pytest.raises(ValueError, match="Unsupported file type"):
-        await mcp_server.ingest_document(str(bad))
+        await mcp_server.ingest_document(str(bad), "public")
 
 
 async def test_api_errors_become_readable(api: list[httpx.Request], monkeypatch: pytest.MonkeyPatch) -> None:
