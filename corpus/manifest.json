@@ -52,7 +52,7 @@
       "ecli": "ECLI:NL:RBZWB:2025:203",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBZWB:2025:203",
       "source_sha256": "af058b47ec571933ba04816ff76ab036705597a1830607c324c4a623eb06083b",
-      "sha256": "4888d7fc2b402b94e1d6683014e43267adadc165ee5232b92110256bea863ffd"
+      "sha256": "0be0c97fd8f092e226a6f36dad7b31ceee9b9b4c1d5f6193d76b1b4b8969aa8f"
     },
     {
       "id": "uitspraak-rbnho-2025-422",
@@ -66,7 +66,7 @@
       "ecli": "ECLI:NL:RBNHO:2025:422",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBNHO:2025:422",
       "source_sha256": "c7b04dd872ee2b3180089b3dd97f7f6b87f9e3d89fdce63efe3fe7ca06c35510",
-      "sha256": "6948b47d24a32e5215dc335ad9049ace399f07ecee1ce0302bbef7a51b781c62"
+      "sha256": "27274bc625a613a60dbf782f87045d56f79fc55f072d8d402e4c938545f90867"
     },
     {
       "id": "uitspraak-rbmne-2025-303",
@@ -80,7 +80,7 @@
       "ecli": "ECLI:NL:RBMNE:2025:303",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBMNE:2025:303",
       "source_sha256": "0246149350fa8e139b7e16bff3678c7ad18d57234b762326db26fe60425b3570",
-      "sha256": "6a9c0faa36dceecd759c0038bf1f4b0d903cd415568cc1f6fd5f876d0a95a7cb"
+      "sha256": "da3da088bfbd84ab410d4e8330810e040dd548bdcf959fe22fb0519f03bc5b1e"
     },
     {
       "id": "uitspraak-rbzwb-2025-321",
@@ -94,7 +94,7 @@
       "ecli": "ECLI:NL:RBZWB:2025:321",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBZWB:2025:321",
       "source_sha256": "6d05b6019bdf1343971d4f2ee5d837e8856b2b1d5cf559e58e4beafaf6f1665a",
-      "sha256": "7efa4ab4686404dbe2260035fdfe24cdd55bf0405d526c91096aae61e4a15e48"
+      "sha256": "daccfee3113b46528f0664cc9340e54dc8287fe2c643887809806a5324032e0a"
     },
     {
       "id": "uitspraak-rbrot-2025-1815",
@@ -108,7 +108,7 @@
       "ecli": "ECLI:NL:RBROT:2025:1815",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBROT:2025:1815",
       "source_sha256": "634fbea5c55dfec86156afd45d927382ff9117b824d4369e71790bc1c16169d9",
-      "sha256": "6f0572b12fa8787a31c73aae8b09178a11578b64ac94dc6e3b94b809043b982a"
+      "sha256": "2c924d6bbd1793afbeefed999b1d7a9c59658894f3f59f7275310309cede3871"
     },
     {
       "id": "uitspraak-rbrot-2023-1772",
@@ -122,7 +122,7 @@
       "ecli": "ECLI:NL:RBROT:2023:1772",
       "source": "https://uitspraken.rechtspraak.nl/details?id=ECLI:NL:RBROT:2023:1772",
       "source_sha256": "81664c654475133f10d04426b0427617388e455bc68ffa7538b911f1ccded67c",
-      "sha256": "ec7d5646d9539bb9ea2af41c6cdd5547532a88d7f083afe2b5572537c5a826bc"
+      "sha256": "7ae8392adeba6f25863bd29ca60a8754f6bee01ca7069b578246f88029a4d265"
     },
     {
       "id": "arbeid-01-arbeidsovereenkomst",
@@ -148,7 +148,7 @@
       "source": "corpus/sources/arbeid-02-ontslagbrief.md",
       "clean_pdf": "corpus/build/files/arbeid-02-ontslagbrief.clean.pdf",
       "ground_truth": "corpus/build/groundtruth/arbeid-02-ontslagbrief.txt",
-      "sha256": "c4cec8ceee7bb31c3343bac74dbfc8ab9de0f33bf156ffa1de9fc24de5c4b771"
+      "sha256": "e8ff320f6fa1d6ae2dfda6fe250e8aaf6b6326562bc9d9109dda4a9bd1972a65"
     },
     {
       "id": "arbeid-03-loonoverzicht",
@@ -174,7 +174,7 @@
       "source": "corpus/sources/arbeid-04-vaststellingsovereenkomst.md",
       "clean_pdf": null,
       "ground_truth": "corpus/build/groundtruth/arbeid-04-vaststellingsovereenkomst.txt",
-      "sha256": "2bb38daaf722ed7a92f4b89db2692f3ef4216bfe7a82a0faeb2bb1511e268f7f"
+      "sha256": "17c325a211b7a7fd6b47ddb6b96ced428880bcbddb3a68cdfa44e1cafc78ee17"
     },
     {
       "id": "huur-01-huurovereenkomst",
@@ -187,7 +187,7 @@
       "source": "corpus/sources/huur-01-huurovereenkomst.md",
       "clean_pdf": null,
       "ground_truth": "corpus/build/groundtruth/huur-01-huurovereenkomst.txt",
-      "sha256": "a4ef39e07f8f23d48c2b1022ce510ddcc14e21284a93646639d0ce7ce91c2458"
+      "sha256": "bab43a6154650421c8b4437db47672f93cfa4654deef30cda4d4aa7341753ad5"
     },
     {
       "id": "huur-02-gebrekenbrief",
@@ -200,7 +200,7 @@
       "source": "corpus/sources/huur-02-gebrekenbrief.md",
       "clean_pdf": "corpus/build/files/huur-02-gebrekenbrief.clean.pdf",
       "ground_truth": "corpus/build/groundtruth/huur-02-gebrekenbrief.txt",
-      "sha256": "329dd28ddfb3a5993014e7ac4f72d3a17f7aa81324228246527c69719568d0bc"
+      "sha256": "f6c38cb281238187c26703a96b9f7b780a6fe3d293d21fd4ddb0f55352658f7b"
     },
     {
       "id": "huur-03-huurachterstand",
@@ -239,7 +239,7 @@
       "source": "corpus/sources/verzekering-01-polisblad.md",
       "clean_pdf": null,
       "ground_truth": "corpus/build/groundtruth/verzekering-01-polisblad.txt",
-      "sha256": "64051a7719bd23202e511d653f03826d9621d263bff132ff9f051de488e5071f"
+      "sha256": "01ee08e56e56e6fe1ee990196c22b11a8afda310f05001e7cb5143f7f279d307"
     },
     {
       "id": "verzekering-02-schadeformulier",
@@ -252,7 +252,7 @@
       "source": "corpus/sources/verzekering-02-schadeformulier.md",
       "clean_pdf": "corpus/build/files/verzekering-02-schadeformulier.clean.pdf",
       "ground_truth": "corpus/build/groundtruth/verzekering-02-schadeformulier.txt",
-      "sha256": "3c707b541d68172e28b680bb9d926b622190b1b851899bec3994d33974e7e998"
+      "sha256": "aba67d026e88518cc1ca9c717f4a5a569ccc0c7b6552141688fe24c8f7a14b27"
     },
     {
       "id": "verzekering-03-afwijzingsbrief",
