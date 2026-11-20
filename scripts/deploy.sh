@@ -21,6 +21,8 @@
 #   --remote-build      Build the images in the registry (ACR Tasks) instead of local Docker
 #   --seed              Upload sample_data/ through the API after deploying
 #   --skip-smoke        Skip smoke tests
+#   --reapply-infra     Apply the Bicep template even if infra/ is unchanged: repairs drift such as
+#                       a deleted role assignment (see docs/runbook.md)
 #
 # Environment: NETWORK_ISOLATION=true puts the data services behind private endpoints
 # (default on for prod), AZURE_API_AUDIENCE and MATTER_GROUPS turn on Entra ID sign-in
@@ -42,6 +44,7 @@ SKIP_BUILD=false
 REMOTE_BUILD=false
 SEED=false
 SKIP_SMOKE=false
+REAPPLY_INFRA=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,7 +57,8 @@ while [[ $# -gt 0 ]]; do
     --remote-build) REMOTE_BUILD=true; shift ;;
     --seed) SEED=true; shift ;;
     --skip-smoke) SKIP_SMOKE=true; shift ;;
-    -h | --help) sed -n '2,32p' "$0"; exit 0 ;;
+    --reapply-infra) REAPPLY_INFRA=true; shift ;;
+    -h | --help) sed -n '2,34p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -186,7 +190,7 @@ step "3/4 Roll out"
 # image, port and health probes together.
 RUNNING_TAG=$(current_tag "${API_APP}")
 INFRA_CHANGED=true
-if [[ -n "${RUNNING_TAG}" ]] && git -C "${ROOT}" cat-file -e "${RUNNING_TAG}^{commit}" 2> /dev/null \
+if [[ "${REAPPLY_INFRA}" == false && -n "${RUNNING_TAG}" ]] && git -C "${ROOT}" cat-file -e "${RUNNING_TAG}^{commit}" 2> /dev/null \
   && git -C "${ROOT}" diff --quiet "${RUNNING_TAG}" "${TAG}" -- infra/; then
   INFRA_CHANGED=false
 fi
