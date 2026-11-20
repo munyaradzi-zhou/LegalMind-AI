@@ -1,27 +1,32 @@
 """Retrieval quality: does the right passage come back, and how high?
 
-Compares five retrieval modes on the golden set (datasets/retrieval_golden_set.json):
+Compares retrieval modes on the golden set (datasets/retrieval_golden_set.json):
 
 - keyword:     BM25 only
 - vector:      embeddings only (text-embedding-3-large, HNSW)
 - hybrid:      BM25 + vectors fused with Reciprocal Rank Fusion
 - hybrid+sem:  hybrid, then the semantic (cross-encoder) re-ranker
-- production:  LLM query rewriting, then hybrid+sem — what /api/chat does
+- hybrid+sem+rewrite: LLM query rewriting first, then hybrid+sem
+- production:  exactly what /api/chat does (hybrid+sem; rewriting only when
+               QUERY_REWRITING_ENABLED is set, which it isn't by default)
 
 Metrics per mode: hit@1, hit@3, hit@5 (a top-k chunk contains the expected passage),
 MRR@10, source@1 (the top chunk comes from the right document) and latency.
 
 Runs against the real Azure services configured in the environment:
     python -m tests.evaluation.evaluate_retrieval
+    python -m tests.evaluation.evaluate_retrieval --modes production   # what the CI gate runs
 """
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import time
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
+from legalmind.config import get_settings
 from legalmind.retrieval.hybrid_search import HybridSearchEngine
 from legalmind.retrieval.query_rewriter import QueryRewriter
 from legalmind.services.azure_openai import AzureOpenAIService
@@ -54,23 +59,31 @@ async def _reachable(engine: HybridSearchEngine, queries: list[dict[str, Any]]) 
     return reachable
 
 
-async def evaluate_retrieval() -> dict[str, Any]:
+async def evaluate_retrieval(only: list[str] | None = None) -> dict[str, Any]:
     queries = load_dataset("retrieval_golden_set.json")
     openai = AzureOpenAIService()
     engine = HybridSearchEngine(openai_service=openai)
     rewriter = QueryRewriter(openai_service=openai)
 
-    async def production(query: str) -> list[SearchResult]:
-        rewritten = await rewriter.rewrite_query(query)
-        return await engine.hybrid_search(rewritten.rewritten, top=TOP_K, enable_semantic_ranking=True)
+    async def rewritten(query: str) -> list[SearchResult]:
+        new_query = await rewriter.rewrite_query(query)
+        return await engine.hybrid_search(new_query.rewritten, top=TOP_K, enable_semantic_ranking=True)
 
-    modes: dict[str, Callable[[str], Awaitable[list[SearchResult]]]] = {
+    async def production(query: str) -> list[SearchResult]:
+        # Mirrors routes/chat.py
+        if get_settings().query_rewriting_enabled:
+            query = (await rewriter.rewrite_query(query)).rewritten
+        return await engine.hybrid_search(query, top=TOP_K, enable_semantic_ranking=True)
+
+    all_modes: dict[str, Callable[[str], Awaitable[list[SearchResult]]]] = {
         "keyword": lambda q: engine.keyword_search(q, top=TOP_K),
         "vector": lambda q: engine.vector_search(q, top=TOP_K),
         "hybrid": lambda q: engine.hybrid_search(q, top=TOP_K, enable_semantic_ranking=False),
         "hybrid+sem": lambda q: engine.hybrid_search(q, top=TOP_K, enable_semantic_ranking=True),
+        "hybrid+sem+rewrite": rewritten,
         "production": production,
     }
+    modes = {name: fn for name, fn in all_modes.items() if not only or name in only}
 
     reachable = await _reachable(engine, queries)
     details: list[dict[str, Any]] = []
@@ -107,7 +120,7 @@ async def evaluate_retrieval() -> dict[str, Any]:
     by_language = []
     for lang in ("nl", "en"):
         subset = [r for r in details if r["language"] == lang]
-        for m in ("hybrid+sem", "production"):
+        for m in [m for m in ("hybrid+sem", "production") if m in modes]:
             by_language.append({"language": lang, "queries": len(subset), **stats(subset, m)})
     by_category: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for r in details:
@@ -121,7 +134,7 @@ async def evaluate_retrieval() -> dict[str, Any]:
             "id": r["id"],
             "query": r["query"],
             "production rank": r["production_rank"],
-            "hybrid+sem rank": r["hybrid+sem_rank"],
+            "hybrid+sem rank": r.get("hybrid+sem_rank", "-"),
         }
         for r in details
         if not r["production_rank"] or r["production_rank"] > 3
@@ -142,4 +155,7 @@ async def evaluate_retrieval() -> dict[str, Any]:
 
 
 if __name__ == "__main__":
-    asyncio.run(evaluate_retrieval())
+    parser = argparse.ArgumentParser(description="Retrieval evaluation")
+    parser.add_argument("--modes", nargs="*", help="modes to run (default: all); production is always included")
+    args = parser.parse_args()
+    asyncio.run(evaluate_retrieval(sorted({*args.modes, "production"}) if args.modes else None))

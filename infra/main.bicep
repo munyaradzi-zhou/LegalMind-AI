@@ -204,6 +204,22 @@ module containerApps 'modules/container-apps.bicep' = {
 }
 
 // =============================================================================
+// Data roles for the CI identity that runs the evaluation gate (only when the CD
+// service principal deploys; people get their roles by hand)
+// =============================================================================
+module evaluatorAccess 'modules/evaluator-access.bicep' = if (deployerPrincipalType == 'ServicePrincipal' && !empty(deployerPrincipalId)) {
+  name: 'evaluator-access-${environmentName}'
+  params: {
+    principalId: deployerPrincipalId
+    openAiName: aiFoundry.outputs.openAiName
+    searchServiceName: aiSearch.outputs.searchServiceName
+    aiServicesName: cognitiveServices.outputs.aiServicesName
+    contentSafetyName: contentSafety.outputs.contentSafetyName
+    cosmosAccountName: cosmosDb.outputs.cosmosAccountName
+  }
+}
+
+// =============================================================================
 // API Management (Consumption tier) in front of the API
 // =============================================================================
 module apiManagement 'modules/api-management.bicep' = {

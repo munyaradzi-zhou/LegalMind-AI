@@ -109,3 +109,4 @@ class HealthResponse(BaseModel):
     environment: str = Field(..., description="Current environment (dev/staging/prod)")
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     services: dict[str, str] = Field(default_factory=dict, description="Status of dependent services")
+    prompts: str = Field(default="", description="Fingerprint of all prompts (changes when any prompt changes)")

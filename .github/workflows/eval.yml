@@ -1,0 +1,117 @@
+# =============================================================================
+# LegalMind AI — evaluation gate
+#
+# Does this change make answers worse? Runs the pull request's own code on the
+# runner (API started locally, signed in to the dev environment's Azure services
+# over OIDC), evaluates retrieval and end-to-end answers on the golden sets, and
+# compares with the baseline from main (tests/evaluation/baselines/main.json).
+# Posts the comparison on the pull request and fails on a drop beyond tolerance.
+#
+# When it runs:
+#   - a pull request labelled "run-eval" (a maintainer adds the label, so only
+#     reviewed code runs with Azure access; every push to it then re-runs)
+#   - nightly on main, and on demand (workflow_dispatch)
+# Cost: about €0.50 of model calls per run. Duration: about 20 minutes.
+#
+# The CI identity's data roles come from infra/modules/evaluator-access.bicep.
+# =============================================================================
+
+name: Evaluation gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [labeled, synchronize, reopened]
+  schedule:
+    - cron: "0 3 * * *" # nightly on main, 03:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: eval-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  id-token: write # OIDC login to Azure
+  contents: read
+  pull-requests: write # the gate's comment
+
+jobs:
+  evaluate:
+    name: Evaluate against the baseline
+    if: >-
+      vars.AZURE_CLIENT_ID != '' &&
+      (github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'run-eval'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: dev # the federated credential trusts this environment
+    env:
+      EVAL_RUN_ID: ci-${{ github.run_id }}
+      API_URL: http://127.0.0.1:8000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: pip install -e ".[dev]"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Use the dev environment's service endpoints
+        # The deployed API's settings, minus its managed identity and telemetry:
+        # here the code signs in as the CI identity and doesn't report to App Insights.
+        run: |
+          az containerapp show -g rg-legalmind-dev -n ca-legalmind-api-dev \
+            --query "properties.template.containers[0].env[?value!=null].[name,value]" -o tsv |
+            grep -vE '^(AZURE_CLIENT_ID|APPLICATIONINSIGHTS_CONNECTION_STRING)\b' |
+            awk -F'\t' '{print $1"="$2}' >> "$GITHUB_ENV"
+
+      - name: Start this branch's API
+        run: |
+          uvicorn legalmind.main:app --host 127.0.0.1 --port 8000 > api.log 2>&1 &
+          for _ in $(seq 1 60); do curl -sf "$API_URL/health" > /dev/null && exit 0; sleep 2; done
+          cat api.log; exit 1
+
+      - name: Retrieval (production mode)
+        run: python -m tests.evaluation.evaluate_retrieval --modes production
+
+      - name: Answers end to end
+        run: python -m tests.evaluation.evaluate_generation
+
+      - name: Compare with the baseline
+        id: gate
+        run: |
+          set +e
+          python -m tests.evaluation.gate --run "tests/evaluation/results/$EVAL_RUN_ID" --comment gate.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat gate.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body-file gate.md --edit-last ||
+            gh pr comment ${{ github.event.pull_request.number }} --body-file gate.md
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-${{ github.run_id }}
+          path: |
+            tests/evaluation/results/${{ env.EVAL_RUN_ID }}
+            api.log
+
+      - name: Fail on a drop beyond tolerance
+        if: steps.gate.outputs.status != '0'
+        run: exit 1

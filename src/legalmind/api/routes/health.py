@@ -10,6 +10,7 @@ from fastapi import APIRouter
 from legalmind import __version__
 from legalmind.api.models.responses import HealthResponse
 from legalmind.config import get_settings
+from legalmind.prompt_registry import prompt_fingerprint
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(tags=["health"])
@@ -28,6 +29,7 @@ async def health_check() -> HealthResponse:
         environment=settings.app_env,
         timestamp=datetime.now(UTC),
         services={},
+        prompts=prompt_fingerprint(),
     )
 
 

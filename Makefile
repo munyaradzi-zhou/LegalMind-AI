@@ -1,4 +1,4 @@
-.PHONY: help install dev check lint format typecheck security test test-integration eval traffic run run-frontend up down deploy-dev clean
+.PHONY: help install dev check lint format typecheck security test test-integration eval eval-gate traffic run run-frontend up down deploy-dev clean
 
 ENV ?= dev
 
@@ -42,6 +42,12 @@ eval: ## Retrieval, generation and agent-routing evaluations (need Azure)
 	python -m tests.evaluation.evaluate_retrieval
 	python -m tests.evaluation.evaluate_generation
 	python -m tests.evaluation.evaluate_agents
+
+eval-gate: ## What the CI gate runs, against the API at $$API_URL; compare with the baseline
+	@test -n "$$API_URL" || (echo "Set API_URL, e.g. make eval-gate API_URL=http://127.0.0.1:8000"; exit 1)
+	EVAL_RUN_ID=local-gate python -m tests.evaluation.evaluate_retrieval --modes production
+	EVAL_RUN_ID=local-gate python -m tests.evaluation.evaluate_generation
+	python -m tests.evaluation.gate --run tests/evaluation/results/local-gate
 
 traffic: ## Realistic traffic against a deployed API: make traffic API_URL=https://...
 	python scripts/generate_traffic.py --api $(API_URL) --rounds 2
