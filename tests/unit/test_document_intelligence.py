@@ -29,7 +29,7 @@ def test_html_table_becomes_markdown() -> None:
 
 def test_normalize_removes_page_comments_and_keeps_page_ranges() -> None:
     page1 = '# Huurovereenkomst\n\nArtikel 1\nDe huurprijs bedraagt € 1.250.\n<!-- PageNumber="1" -->\n'
-    page2 = "<!-- PageBreak -->\n\n\n\nArtikel 2\nDe opzegtermijn is drie maanden.\n"
+    page2 = "<!-- PageBreak -->\n\n\n\nArtikel 2\n1\\. De opzegtermijn is drie maanden.\n"
     content = page1 + page2
     spans = [(1, 0, len(page1)), (2, len(page1), len(content))]
 
@@ -37,6 +37,7 @@ def test_normalize_removes_page_comments_and_keeps_page_ranges() -> None:
 
     assert "<!--" not in text
     assert "\n\n\n" not in text
+    assert "1. De opzegtermijn" in text
     (_, s1, e1), (_, s2, e2) = boundaries
     assert "Artikel 1" in text[s1:e1] and "Artikel 2" not in text[s1:e1]
     assert "Artikel 2" in text[s2:e2] and "Artikel 1" not in text[s2:e2]

@@ -25,7 +25,8 @@ from azure.ai.documentintelligence.models import (
     DocumentAnalysisFeature,
     DocumentContentFormat,
 )
-from tenacity import retry, stop_after_attempt, wait_exponential
+from azure.core.exceptions import HttpResponseError, ServiceRequestError, ServiceResponseError
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from legalmind.config import get_async_azure_credential, get_settings
 
@@ -121,9 +122,10 @@ class DocumentIntelligenceResult:
 
 # What the service puts in its Markdown that we don't want in chunks:
 # HTML comments (<!-- PageBreak -->, <!-- PageNumber="3" -->, <!-- PageHeader=... -->),
-# HTML tables, figure wrappers, and runs of blank lines.
+# HTML tables, figure wrappers, Markdown escapes such as "1\." (not "\|" inside tables),
+# and runs of blank lines.
 _MARKUP = re.compile(
-    r"<!--.*?-->|<table>.*?</table>|</?figure>|</?figcaption>",
+    r"<!--.*?-->|<table>.*?</table>|</?figure>|</?figcaption>|\\(?=[.*_#+!-])",
     re.DOTALL | re.IGNORECASE,
 )
 _BLANK_LINES = re.compile(r"\n[ \t]*\n(?:[ \t]*\n)+")
@@ -245,6 +247,18 @@ def _rewrite(
 # ─── Analyzer ────────────────────────────────────────────────────────────────
 
 
+def _is_transient(error: BaseException) -> bool:
+    """Retry throttling, server errors and network failures; a rejected request won't improve."""
+    if isinstance(error, (ServiceRequestError, ServiceResponseError)):
+        return True
+    return isinstance(error, HttpResponseError) and (error.status_code == 429 or (error.status_code or 0) >= 500)
+
+
+def _is_office_document(document_bytes: bytes) -> bool:
+    """DOCX, XLSX and PPTX are ZIP containers; the service rejects some add-on features for them."""
+    return document_bytes[:4] == b"PK\x03\x04"
+
+
 class DocumentIntelligenceAnalyzer:
     """Wrapper around Azure Document Intelligence for layout extraction.
 
@@ -275,7 +289,12 @@ class DocumentIntelligenceAnalyzer:
             credential=self._credential,
         )
 
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=60))
+    @retry(
+        retry=retry_if_exception(_is_transient),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=60),
+        reraise=True,
+    )
     async def analyze(
         self,
         document_bytes: bytes,
@@ -299,6 +318,12 @@ class DocumentIntelligenceAnalyzer:
             azure.core.exceptions.HttpResponseError: On API errors.
         """
         use_markdown = markdown and model_id == "prebuilt-layout"
+        # Key-value pairs are a free add-on for PDFs and images, but not supported for Office files
+        features: list[str | DocumentAnalysisFeature] | None = (
+            [DocumentAnalysisFeature.KEY_VALUE_PAIRS]
+            if model_id == "prebuilt-layout" and not _is_office_document(document_bytes)
+            else None
+        )
         logger.info(
             "document_intelligence_analyze_start",
             model_id=model_id,
@@ -315,7 +340,7 @@ class DocumentIntelligenceAnalyzer:
                 # Offsets in Python string indices, so page ranges can slice `content` directly
                 string_index_type="unicodeCodePoint",
                 output_content_format=DocumentContentFormat.MARKDOWN if use_markdown else DocumentContentFormat.TEXT,
-                features=[DocumentAnalysisFeature.KEY_VALUE_PAIRS] if model_id == "prebuilt-layout" else None,
+                features=features,
             )
             result = await poller.result()
 

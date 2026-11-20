@@ -202,7 +202,7 @@ class SearchIndexer:
                     "page_number": chunk.page_number,
                     "section_title": chunk.section_title,
                     "parent_id": chunk.parent_id or "",
-                    "source_url": str(chunk.metadata.get("blob_url", "")),
+                    "source_url": str(chunk.metadata.get("source_url") or chunk.metadata.get("blob_url", "")),
                     "created_at": now,
                 }
             )
@@ -317,7 +317,7 @@ class SearchIndexer:
                 "summary": enriched.summary,
                 # Hierarchy and provenance
                 "parent_id": chunk.parent_id or "",
-                "source_url": str(merged_meta.get("blob_url", "")),
+                "source_url": str(merged_meta.get("source_url") or merged_meta.get("blob_url", "")),
                 "created_at": now,
             }
 

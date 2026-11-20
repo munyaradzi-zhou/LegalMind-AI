@@ -27,6 +27,10 @@ _LANGUAGE_API_BATCH_SIZE = 25
 # Maximum text length per document in a Language API call (5,120 characters)
 _MAX_TEXT_LENGTH = 5120
 
+# Languages that Azure AI Language extractive summarization supports. Dutch is not one of
+# them: summarizing a Dutch chunk is a call that always fails, so it is skipped.
+_SUMMARY_LANGUAGES = frozenset({"de", "en", "es", "fr", "he", "it", "ja", "ko", "pl", "pt-BR", "pt-PT", "zh-Hans"})
+
 # Entity categories relevant to Dutch legal documents
 _LEGAL_ENTITY_CATEGORIES = frozenset(
     {
@@ -229,6 +233,7 @@ class ChunkEnricher:
 
         Summarization may fail for very short texts, so we handle errors
         gracefully and return empty summaries instead of failing the batch.
+        Languages the service doesn't summarize (such as Dutch) are skipped.
 
         Args:
             texts: List of text strings.
@@ -237,6 +242,8 @@ class ChunkEnricher:
         Returns:
             List of summary strings (empty on failure).
         """
+        if language not in _SUMMARY_LANGUAGES:
+            return [""] * len(texts)
         try:
             return await self._client.summarize_text(
                 texts,

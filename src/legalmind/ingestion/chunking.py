@@ -65,9 +65,13 @@ _HEADING_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"^(?:HOOFDSTUK|Hoofdstuk)\s+[IVXLCDM\d]+", re.IGNORECASE),
     re.compile(r"^(?:Paragraaf|Par\.?)\s+\d+", re.IGNORECASE),
     re.compile(r"^(?:Afdeling)\s+\d+", re.IGNORECASE),
-    re.compile(r"^\d+(?:\.\d+)*\.?\s+[A-Z]"),  # "1. Definities", "3.2 Verplichtingen"
     re.compile(r"^[A-Z][A-Z\s]{2,}$"),  # ALL CAPS lines (common headings)
 ]
+
+# "1. Definities", "3.2 Verplichtingen" — but not a numbered clause such as
+# "2.2 De maximale dekking bedraagt €50.000 per geschil", so: few words, no sentence ending.
+_NUMBERED_HEADING = re.compile(r"^\d+(?:\.\d+)*\.?\s+[A-Z]")
+_NUMBERED_HEADING_MAX_WORDS = 5
 
 
 def _is_heading(line: str) -> bool:
@@ -75,7 +79,13 @@ def _is_heading(line: str) -> bool:
     stripped = line.strip()
     if not stripped or len(stripped) > 200:
         return False
-    return any(pattern.match(stripped) for pattern in _HEADING_PATTERNS)
+    if any(pattern.match(stripped) for pattern in _HEADING_PATTERNS):
+        return True
+    return (
+        _NUMBERED_HEADING.match(stripped) is not None
+        and len(stripped.split()) <= _NUMBERED_HEADING_MAX_WORDS
+        and not stripped.endswith((".", ",", ";", ":"))
+    )
 
 
 def _extract_heading_title(line: str) -> str:
@@ -220,8 +230,13 @@ def semantic_chunk(
     for title, body, start_offset in sections:
         section_text = f"{title}\n\n{body}".strip() if title else body.strip()
 
-        # If accumulated text is below minimum, keep accumulating
-        if accumulated_text and len(accumulated_text) + len(section_text) < min_chunk_size:
+        # A section below the minimum (a bare heading, a one-line clause) joins the next one,
+        # as long as the result stays within the maximum
+        if (
+            accumulated_text
+            and len(accumulated_text) < min_chunk_size
+            and len(accumulated_text) + len(section_text) <= max_chunk_size
+        ):
             accumulated_text += "\n\n" + section_text
             continue
 

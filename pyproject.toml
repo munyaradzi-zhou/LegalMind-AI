@@ -123,6 +123,8 @@ ignore = ["S101", "S104"]
 # FastAPI reads route parameter annotations at runtime, so request models used in
 # route signatures must NOT be moved into `if TYPE_CHECKING:` blocks.
 "src/legalmind/api/routes/*" = ["TC001", "TC002", "TC003"]
+# Command-line scripts report progress with print; random only drives synthetic scan noise.
+"scripts/*" = ["T201", "S311"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["legalmind"]
