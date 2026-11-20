@@ -386,14 +386,16 @@ def apply_redaction(text: str, entities: list[PiiEntity], *, replacement_format:
     """Replace each detected entity in ``text`` with its category marker (``Jan de Vries`` -> ``[Person]``).
 
     AI Language and the Dutch regexes can report overlapping spans (a postcode inside an
-    address); overlapping spans are merged and take the category of the longest one.
+    address); overlapping spans are merged and take the category of the longest one. On a tie
+    the later entity wins: the Dutch regexes run after AI Language and are more specific (a
+    valid BSN that AI Language calls a phone number is stored as ``[NLBSNNumber]``).
     """
     spans: list[tuple[int, int, str]] = []
     for entity in sorted(entities, key=lambda e: (e.offset, -e.length)):
         start, end = entity.offset, entity.offset + entity.length
         if spans and start < spans[-1][1]:
             last_start, last_end, category = spans[-1]
-            if end - start > last_end - last_start:
+            if end - start >= last_end - last_start:
                 category = entity.category
             spans[-1] = (last_start, max(last_end, end), category)
         else:

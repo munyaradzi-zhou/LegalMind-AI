@@ -32,7 +32,24 @@ NETWORK_REFUSALS = (
     "firewall",
     "requests originating from",
     "is not allowed",
+    # Storage answers a refused network with AuthorizationFailure; a missing data role
+    # would be AuthorizationPermissionMismatch instead
+    "<code>authorizationfailure</code>",
 )
+
+# A real data-plane call per Cognitive Services kind: the root path answers 200 even when
+# public access is disabled, because it isn't subject to the network rule.
+LANGUAGE_CALL = (
+    "/language/:analyze-text?api-version=2023-04-01",
+    {"kind": "LanguageDetection", "analysisInput": {"documents": [{"id": "1", "text": "hallo"}]}},
+)
+COGNITIVE_CALLS: dict[str, tuple[str, dict[str, object] | None]] = {
+    "OpenAI": ("/openai/models?api-version=2024-10-21", None),
+    "FormRecognizer": ("/documentintelligence/documentModels?api-version=2024-11-30", None),
+    "ContentSafety": ("/contentsafety/text:analyze?api-version=2024-09-01", {"text": "hallo"}),
+    "CognitiveServices": LANGUAGE_CALL,
+    "AIServices": LANGUAGE_CALL,
+}
 
 
 @dataclass
@@ -40,6 +57,7 @@ class Target:
     service: str
     url: str
     scope: str
+    body: dict[str, object] | None = None  # POST this instead of a GET
 
 
 def _az(*args: str) -> str:
@@ -55,9 +73,9 @@ def _targets(resource_group: str) -> list[Target]:
         name, kind, rtype = r["n"], (r["k"] or ""), r["t"]
         if rtype == "Microsoft.CognitiveServices/accounts":
             host = "openai.azure.com" if kind == "OpenAI" else "cognitiveservices.azure.com"
-            path = "/openai/models?api-version=2024-10-21" if kind == "OpenAI" else "/"
+            path, body = COGNITIVE_CALLS.get(kind, LANGUAGE_CALL)
             scope = "https://cognitiveservices.azure.com/.default"
-            targets.append(Target(f"{kind} {name}", f"https://{name}.{host}{path}", scope))
+            targets.append(Target(f"{kind} {name}", f"https://{name}.{host}{path}", scope, body))
         elif rtype == "Microsoft.Search/searchServices":
             url = f"https://{name}.search.windows.net/indexes?api-version=2024-07-01"
             targets.append(Target(f"AI Search {name}", url, "https://search.azure.com/.default"))
@@ -87,10 +105,13 @@ def check(target: Target) -> tuple[str, int | None, str]:
             "x-ms-date": formatdate(usegmt=True),
         }
     try:
-        response = httpx.get(target.url, headers=headers, timeout=20)
+        if target.body is None:
+            response = httpx.get(target.url, headers=headers, timeout=20)
+        else:
+            response = httpx.post(target.url, headers=headers, json=target.body, timeout=20)
     except httpx.HTTPError as error:
         return "refused (no connection)", None, type(error).__name__
-    body = response.text[:400].replace("\n", " ")
+    body = response.text[:400].replace("\n", " ").replace("﻿", "")  # some services start with a BOM
     if response.status_code < 400:
         return "reachable", response.status_code, ""
     if any(p in body.lower() for p in NETWORK_REFUSALS):

@@ -22,7 +22,7 @@ var tags = {
 }
 
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
-  name: 'vnet-${projectName}-${environmentName}'
+  name: 'vnet-${projectName}-${environmentName}-${location}'
   location: location
   tags: tags
   properties: {

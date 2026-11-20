@@ -26,6 +26,9 @@ param searchLocation string = location
 @description('Region for Azure OpenAI. Defaults to location; set it when that region has no capacity (or the subscription allows one OpenAI account per region).')
 param openAiLocation string = location
 
+@description('Region for the Container Apps environment and, with networkIsolation, its VNet and private endpoints. Defaults to location.')
+param appsLocation string = location
+
 @description('Short project name used in resource names. Lowercase alphanumeric.')
 @minLength(3)
 @maxLength(12)
@@ -72,7 +75,7 @@ var publicNetworkAccess = networkIsolation ? 'Disabled' : 'Enabled'
 module network 'modules/network.bicep' = if (networkIsolation) {
   name: 'network-${environmentName}'
   params: {
-    location: location
+    location: appsLocation
     environmentName: environmentName
     projectName: projectName
   }
@@ -213,7 +216,7 @@ module registry 'modules/container-registry.bicep' = {
 module containerApps 'modules/container-apps.bicep' = {
   name: 'container-apps-${environmentName}'
   params: {
-    location: location
+    location: appsLocation
     environmentName: environmentName
     projectName: projectName
     logAnalyticsId: monitoring.outputs.logAnalyticsId
@@ -245,7 +248,7 @@ module containerApps 'modules/container-apps.bicep' = {
 module privateEndpoints 'modules/private-endpoints.bicep' = if (networkIsolation) {
   name: 'private-endpoints-${environmentName}'
   params: {
-    location: location
+    location: appsLocation
     environmentName: environmentName
     vnetId: network!.outputs.vnetId
     subnetId: network!.outputs.privateEndpointSubnetId

@@ -38,6 +38,13 @@ def test_overlapping_spans_are_merged_into_the_longest() -> None:
     assert apply_redaction(text, found.entities) == "Adres: [Address]"
 
 
+def test_a_dutch_identifier_wins_a_tie_with_ai_language() -> None:
+    text = "BSN 111222333"
+    language = _entity("111222333", text, "PhoneNumber")
+    regex = _entity("111222333", text, "NLBSNNumber")  # found after AI Language's entities
+    assert apply_redaction(text, [language, regex]) == "BSN [NLBSNNumber]"
+
+
 async def test_chat_stores_redacted_messages_and_no_passages(
     client: httpx.AsyncClient,  # noqa: F811
     sessions: dict[str, Any],  # noqa: F811
