@@ -72,3 +72,6 @@ tests/evaluation/results/
 
 # Private improvement plan (kept locally)
 IMPROVEMENTS.md
+
+# Generated evaluation corpus (rebuild with scripts/build_corpus.py)
+corpus/build/
