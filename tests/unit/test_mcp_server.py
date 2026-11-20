@@ -211,3 +211,22 @@ async def test_mcp_request_without_key_is_rejected() -> None:
     async with httpx.AsyncClient(transport=transport, base_url="http://mcp") as client:
         response = await client.post("/mcp", json={"jsonrpc": "2.0", "id": 1, "method": "ping"})
     assert response.status_code == 401
+
+
+async def test_remote_server_accepts_a_public_host_name(remote_server: str) -> None:
+    """Behind Azure's ingress the Host header is the public name; it must not get 421."""
+    initialize = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "1"}},
+    }
+    headers = {
+        "Authorization": f"Bearer {KEY}",
+        "Host": "ca-legalmind-mcp-dev.example.azurecontainerapps.io",
+        "Accept": "application/json, text/event-stream",
+    }
+    async with httpx.AsyncClient() as client:
+        response = await client.post(f"{remote_server}/mcp", json=initialize, headers=headers)
+    assert response.status_code == 200
+    assert "LegalMind" in response.text

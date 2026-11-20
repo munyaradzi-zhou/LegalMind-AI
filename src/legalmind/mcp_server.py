@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import JSONResponse
 
 if TYPE_CHECKING:
@@ -203,6 +204,10 @@ def build_server(*, remote: bool = False) -> FastMCP:
         instructions=INSTRUCTIONS,
         # Each request stands alone, so any replica can serve any client
         stateless_http=remote,
+        # DNS-rebinding protection guards servers on a developer's machine and only lets
+        # "localhost" through as Host; behind Azure's ingress the Host is the public name
+        # (it answered 421 to every call). The remote server is protected by the API key.
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False) if remote else None,
     )
     tools: list[Callable[..., Any]] = [search_legal_documents, ask_legal_question, list_agents]
     if not remote:

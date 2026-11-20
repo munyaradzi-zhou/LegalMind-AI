@@ -235,7 +235,13 @@ if [[ "${SKIP_SMOKE}" == false ]]; then
     curl -sf "${MCP_BASE}/health" > /dev/null || { echo "MCP server: /health is not answering" >&2; exit 1; }
     STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${MCP_URL}" -H "Content-Type: application/json" -d '{}')
     [[ "${STATUS}" == "401" ]] || { echo "MCP server answered ${STATUS} without an API key (expected 401)" >&2; exit 1; }
-    echo "MCP server: healthy, and refuses requests without the key."
+    # A real MCP handshake with the key, through the public host name (as remote agents call it)
+    MCP_KEY=$(az keyvault secret show --vault-name "$(key_vault)" -n "${MCP_SECRET}" --query value -o tsv)
+    INIT='{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"deploy-smoke-test","version":"1"}}}'
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${MCP_URL}" -H "Authorization: Bearer ${MCP_KEY}" \
+      -H "Content-Type: application/json" -H "Accept: application/json, text/event-stream" -d "${INIT}")
+    [[ "${STATUS}" == "200" ]] || { echo "MCP initialize with the key answered ${STATUS} (expected 200)" >&2; exit 1; }
+    echo "MCP server: healthy, refuses requests without the key, and completes an MCP handshake with it."
   fi
 fi
 
