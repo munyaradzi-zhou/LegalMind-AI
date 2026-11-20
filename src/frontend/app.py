@@ -66,9 +66,17 @@ def render_sidebar() -> None:
         )
         doc_type = st.selectbox("Document type", DOCUMENT_TYPES, key="upload_doc_type")
         title = st.text_input("Title (optional)", key="upload_title")
+        matter = st.text_input(
+            "Matter number",
+            key="upload_matter",
+            placeholder="BM/2026/H-0412, or public",
+            help="Only people on this matter will see the document; 'public' for legislation and rulings.",
+        )
 
-        if uploaded_file and st.button("Process document", type="primary", use_container_width=True):
-            upload_document(uploaded_file, doc_type, title)
+        if uploaded_file and st.button(
+            "Process document", type="primary", use_container_width=True, disabled=not matter.strip()
+        ):
+            upload_document(uploaded_file, doc_type, title, matter.strip())
 
         st.divider()
         eyebrow("Conversation")
@@ -83,11 +91,11 @@ def render_sidebar() -> None:
             st.caption(f"Session `{st.session_state.session_id[:8]}`")
 
 
-def upload_document(uploaded_file, doc_type: str, title: str) -> None:
+def upload_document(uploaded_file, doc_type: str, title: str, matter: str) -> None:
     """Send a file to the ingestion endpoint and remember the result."""
     with st.spinner("Uploading, analysing and indexing..."):
         try:
-            data = {"document_type": doc_type, "language": "nl"}
+            data = {"document_type": doc_type, "language": "nl", "matter": matter}
             if title:
                 data["title"] = title
             response = httpx.post(

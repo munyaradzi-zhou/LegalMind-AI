@@ -102,6 +102,13 @@ class Settings(BaseSettings):
     # Audience ("aud" claim) the API accepts in Entra ID tokens: your app registration's
     # Application ID URI or client ID. Falls back to api://<tenant-id> when empty.
     azure_api_audience: str = ""
+    # Require an Entra ID token on every API call (AUTH_ENABLED). Always on in production.
+    # Off, every caller acts as an unrestricted developer, or as the test user described by
+    # the X-Dev-User / X-Dev-Roles / X-Dev-Groups headers (see legalmind.api.middleware.auth).
+    auth_enabled: bool = False
+    # Matter (case) number -> Entra security group object ID whose members may see its
+    # files (MATTER_GROUPS, JSON). See legalmind.access.
+    matter_groups: dict[str, str] = Field(default_factory=dict)
 
     # LLM provider. "openai" = OpenAI API with OPENAI_API_KEY; "azure" = Azure OpenAI with
     # Entra ID (no keys); "auto" = "openai" when OPENAI_API_KEY is set, otherwise "azure".
@@ -143,6 +150,10 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env == "production"
+
+    @property
+    def requires_sign_in(self) -> bool:
+        return self.auth_enabled or self.is_production
 
     @property
     def uses_openai_api(self) -> bool:

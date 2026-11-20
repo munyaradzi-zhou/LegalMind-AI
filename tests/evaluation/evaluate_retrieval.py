@@ -26,6 +26,7 @@ import time
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any
 
+from legalmind.access import Principal, set_principal
 from legalmind.config import get_settings
 from legalmind.retrieval.hybrid_search import HybridSearchEngine
 from legalmind.retrieval.query_rewriter import QueryRewriter
@@ -61,6 +62,9 @@ async def _reachable(engine: HybridSearchEngine, queries: list[dict[str, Any]]) 
 
 async def evaluate_retrieval(only: list[str] | None = None) -> dict[str, Any]:
     queries = load_dataset("retrieval_golden_set.json")
+    # Retrieval quality is measured over the whole corpus; who may see what is
+    # measured separately (tests/evaluation/evaluate_access.py).
+    set_principal(Principal.everything("eval-retrieval"))
     openai = AzureOpenAIService()
     engine = HybridSearchEngine(openai_service=openai)
     rewriter = QueryRewriter(openai_service=openai)

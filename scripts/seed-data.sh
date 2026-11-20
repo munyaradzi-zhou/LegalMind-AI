@@ -27,6 +27,8 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 APP_URL="${APP_URL:?APP_URL environment variable is required}"
 SAMPLE_DATA_DIR="${SAMPLE_DATA_DIR:-${PROJECT_ROOT}/sample_data}"
 API_TOKEN="${API_TOKEN:-}"
+# The sample files belong to one fictional matter (only its members see them; needs the Admin role)
+SEED_MATTER="${SEED_MATTER:-VRB/2024/ZK-9012}"
 MAX_RETRIES="${MAX_RETRIES:-3}"
 RETRY_DELAY="${RETRY_DELAY:-5}"
 
@@ -172,7 +174,7 @@ upload_file() {
     if [[ -n "${AUTH_HEADER}" ]]; then
       CURL_ARGS+=(-H "${AUTH_HEADER}")
     fi
-    CURL_ARGS+=(-F "file=@${file_path}" -F "document_type=$(document_type_for "${file_path}")" -F "language=nl" -F "replace_existing=true")
+    CURL_ARGS+=(-F "file=@${file_path}" -F "document_type=$(document_type_for "${file_path}")" -F "language=nl" -F "replace_existing=true" -F "matter=${SEED_MATTER}")
 
     RESPONSE=$(curl "${CURL_ARGS[@]}" "${INGEST_URL}" 2>/dev/null || echo -e "\n000")
 

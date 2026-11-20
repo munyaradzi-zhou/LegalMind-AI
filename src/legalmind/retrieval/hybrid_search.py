@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 import structlog
 
+from legalmind.access import Principal, combine_filters, current_principal
 from legalmind.config import get_settings
 from legalmind.services import AzureOpenAIService, SearchService
 
@@ -83,6 +84,16 @@ class SearchFilters:
         return " and ".join(clauses) if clauses else None
 
 
+def _filter(filters: SearchFilters | None, access: Principal | None) -> str | None:
+    """The request's filters plus the caller's security trimming (see legalmind.access).
+
+    ``access`` defaults to the principal of the current request; with neither, the search
+    is refused rather than run unfiltered.
+    """
+    principal = access or current_principal()
+    return combine_filters(principal.search_filter(), filters.to_odata() if filters else None)
+
+
 def _escape(value: str) -> str:
     """Escape a value for an OData string literal (a single quote is written as two)."""
     return value.replace("'", "''")
@@ -107,6 +118,8 @@ class SearchResult:
     parent_id: str | None = None
     source_url: str | None = None
     created_at: str | None = None
+    matter: str | None = None
+    privileged: bool = False
 
     # Relevance scores
     search_score: float = 0.0
@@ -138,6 +151,8 @@ class SearchResult:
             parent_id=doc.get("parent_id"),
             source_url=doc.get("source_url"),
             created_at=doc.get("created_at"),
+            matter=doc.get("matter"),
+            privileged=bool(doc.get("privileged")),
             search_score=doc.get("@search.score", 0.0),
             reranker_score=doc.get("@search.reranker_score"),
         )
@@ -163,6 +178,8 @@ _DEFAULT_SELECT: list[str] = [
     "parent_id",
     "source_url",
     "created_at",
+    "matter",
+    "privileged",
 ]
 
 
@@ -205,6 +222,7 @@ class HybridSearchEngine:
         query: str,
         *,
         filters: SearchFilters | None = None,
+        access: Principal | None = None,
         top: int = 10,
         enable_semantic_ranking: bool = True,
         select: list[str] | None = None,
@@ -220,6 +238,8 @@ class HybridSearchEngine:
             query: The natural-language search query.
             filters: Optional structured filters (document type, date range,
                 language, parent document).
+            access: Whose access rights limit the search; defaults to the
+                principal of the current request (see ``legalmind.access``).
             top: Maximum number of results to return.
             enable_semantic_ranking: Whether to apply semantic re-ranking on
                 top of hybrid fusion.  Defaults to ``True``.
@@ -237,11 +257,11 @@ class HybridSearchEngine:
             has_filters=filters is not None,
         )
 
-        # 1. Generate the query embedding
-        query_vector = await self._openai.generate_single_embedding(query)
+        # 1. Build the OData filter, including the caller's security trimming
+        odata_filter = _filter(filters, access)
 
-        # 2. Build OData filter string
-        odata_filter = filters.to_odata() if filters else None
+        # 2. Generate the query embedding
+        query_vector = await self._openai.generate_single_embedding(query)
 
         # 3. Determine semantic configuration
         semantic_config = "legal-semantic-config" if enable_semantic_ranking else None
@@ -280,6 +300,7 @@ class HybridSearchEngine:
         query: str,
         *,
         filters: SearchFilters | None = None,
+        access: Principal | None = None,
         top: int = 10,
     ) -> list[SearchResult]:
         """Execute a keyword-only (BM25) search without vector similarity.
@@ -297,7 +318,7 @@ class HybridSearchEngine:
         """
         logger.info("keyword_search", query=query[:120], top=top)
 
-        odata_filter = filters.to_odata() if filters else None
+        odata_filter = _filter(filters, access)
 
         raw_results = await self._search.hybrid_search(
             query,
@@ -318,6 +339,7 @@ class HybridSearchEngine:
         query: str,
         *,
         filters: SearchFilters | None = None,
+        access: Principal | None = None,
         top: int = 10,
     ) -> list[SearchResult]:
         """Execute a pure vector similarity search.
@@ -335,7 +357,7 @@ class HybridSearchEngine:
         logger.info("vector_search", query=query[:120], top=top)
 
         query_vector = await self._openai.generate_single_embedding(query)
-        odata_filter = filters.to_odata() if filters else None
+        odata_filter = _filter(filters, access)
 
         raw_results = await self._search.vector_search(
             query_vector,

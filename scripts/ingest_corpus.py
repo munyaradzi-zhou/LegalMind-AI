@@ -3,7 +3,8 @@
 Runs the same pipeline as ``POST /api/ingest`` in-process, as the signed-in operator
 (``az login``), so a bulk load doesn't depend on the deployed API's version or timeouts.
 Each document keeps its manifest metadata; legislation and case law get their public
-source as ``source_url``. Re-running replaces earlier versions of the same title.
+source as ``source_url`` and are public, case files are visible to their matter only.
+Re-running replaces earlier versions of the same title.
 
 Usage::
 
@@ -38,6 +39,7 @@ CONTENT_TYPES = {
 
 
 async def ingest(documents: list[dict[str, Any]], concurrency: int) -> list[dict[str, Any]]:
+    from legalmind.access import DocumentAccess
     from legalmind.ingestion.pipeline import IngestionPipeline
 
     pipeline = IngestionPipeline()
@@ -60,6 +62,7 @@ async def ingest(documents: list[dict[str, Any]], concurrency: int) -> list[dict
                     title=doc["title"],
                     metadata=metadata,
                     replace_existing=True,
+                    access=DocumentAccess(matter=doc.get("matter"), privileged=doc.get("privileged", False)),
                 )
             except Exception as error:  # report and continue with the next document
                 results.append({"id": doc["id"], "ok": False, "error": f"{type(error).__name__}: {error}"})

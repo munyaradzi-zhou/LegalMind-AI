@@ -5,13 +5,21 @@ from __future__ import annotations
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
+from legalmind.access import PUBLIC, DocumentAccess
+from legalmind.api.middleware.auth import require_admin
 from legalmind.api.models.responses import DocumentIngestResponse
 from legalmind.ingestion.pipeline import IngestionPipeline
 
 logger = structlog.get_logger(__name__)
-router = APIRouter(prefix="/ingest", tags=["ingestion"])
+# Adding documents is for the Admin app role only.
+router = APIRouter(prefix="/ingest", tags=["ingestion"], dependencies=[Depends(require_admin)])
+
+MATTER_HELP = (
+    "Matter (case) number whose members may see the document, e.g. BM/2026/H-0412; "
+    "'public' for legislation and published rulings, which every user may see"
+)
 
 ALLOWED_CONTENT_TYPES = {
     "application/pdf",
@@ -37,6 +45,10 @@ async def ingest_document(
     replace_existing: bool = Form(
         default=False, description="Replace earlier uploads with the same title instead of adding a copy"
     ),
+    matter: str = Form(..., description=MATTER_HELP),
+    privileged: bool = Form(
+        default=False, description="Covered by legal professional privilege: only the Lawyer role sees it"
+    ),
 ) -> DocumentIngestResponse:
     """Upload and process a legal document.
 
@@ -48,6 +60,8 @@ async def ingest_document(
     5. Generate embeddings
     6. Index into Azure AI Search
     """
+    access = document_access(matter, privileged)
+
     # Validate content type
     if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -72,6 +86,8 @@ async def ingest_document(
         content_type=file.content_type,
         size_mb=round(size_mb, 2),
         document_type=document_type,
+        matter=access.matter,
+        privileged=access.privileged,
     )
 
     # Run ingestion pipeline
@@ -84,6 +100,7 @@ async def ingest_document(
         title=title,
         content_type=file.content_type or "application/pdf",
         replace_existing=replace_existing,
+        access=access,
     )
 
     return DocumentIngestResponse(
@@ -101,11 +118,14 @@ async def ingest_batch(
     files: list[UploadFile] = File(..., description="Multiple legal documents to ingest"),  # noqa: B008
     document_type: str = Form(default="contract"),
     language: str = Form(default="nl"),
+    matter: str = Form(..., description=MATTER_HELP),
+    privileged: bool = Form(default=False),
 ) -> dict[str, Any]:
     """Upload and process multiple documents in batch.
 
     Returns a summary of the batch ingestion results.
     """
+    access = document_access(matter, privileged)
     results = []
     errors = []
 
@@ -119,6 +139,7 @@ async def ingest_batch(
                 document_type=document_type,
                 language=language,
                 content_type=file.content_type or "application/pdf",
+                access=access,
             )
             results.append(
                 {
@@ -146,3 +167,15 @@ async def ingest_batch(
         "results": results,
         "errors": errors,
     }
+
+
+def document_access(matter: str, privileged: bool) -> DocumentAccess:
+    """Who may retrieve the uploaded document; the matter must be given explicitly."""
+    matter = matter.strip()
+    if not matter:
+        raise HTTPException(status_code=400, detail=f"matter is required: {MATTER_HELP}")
+    if matter.lower() == PUBLIC:
+        if privileged:
+            raise HTTPException(status_code=400, detail="A public document can't be privileged")
+        return DocumentAccess()
+    return DocumentAccess(matter=matter, privileged=privileged)

@@ -17,7 +17,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import structlog
 
@@ -29,6 +29,9 @@ from legalmind.ingestion.embedding import EmbeddedChunk, EmbeddingGenerator
 from legalmind.ingestion.enrichment import ChunkEnricher, EnrichedChunk
 from legalmind.ingestion.indexing import IndexingResult, SearchIndexer
 from legalmind.services import AzureOpenAIService, BlobStorageService, CognitiveServicesClient, SearchService
+
+if TYPE_CHECKING:
+    from legalmind.access import DocumentAccess
 
 logger = structlog.get_logger(__name__)
 
@@ -159,6 +162,7 @@ class IngestionPipeline:
         language: str = "nl",
         title: str | None = None,
         replace_existing: bool = False,
+        access: DocumentAccess | None = None,
     ) -> IngestionResult:
         """Run the full ingestion pipeline on a document.
 
@@ -175,6 +179,9 @@ class IngestionPipeline:
             title: Human-readable document title. Defaults to the filename.
             replace_existing: Remove the chunks of earlier uploads with the same title
                 once this version is indexed (re-ingesting a document doesn't duplicate it).
+            access: Who may retrieve the document: public law, or one matter's files
+                (see ``legalmind.access``). Without it nobody can retrieve the document
+                until its access is set, so a forgotten argument can't leak a client file.
 
         Returns:
             An :class:`IngestionResult` summarizing the operation.
@@ -196,6 +203,9 @@ class IngestionPipeline:
         doc_metadata["content_type"] = content_type
         doc_metadata["document_type"] = document_type_value
         doc_metadata["language"] = language
+        doc_metadata["matter"] = access.matter if access else None
+        doc_metadata["privileged"] = access.privileged if access else False
+        doc_metadata["allowed_groups"] = access.allowed_groups() if access else []
 
         logger.info(
             "ingestion_start",
@@ -255,7 +265,9 @@ class IngestionPipeline:
 
             # ── Stage 7: Remove earlier versions (only after this one is indexed) ──
             if replace_existing and result.is_success:
-                result.metadata["chunks_replaced"] = await self._remove_earlier_versions(doc_metadata["title"], doc_id)
+                result.metadata["chunks_replaced"] = await self._remove_earlier_versions(
+                    doc_metadata["title"], doc_id, doc_metadata["matter"]
+                )
 
         except Exception:
             logger.exception("ingestion_failed", document_id=doc_id, filename=filename)
@@ -523,10 +535,14 @@ class IngestionPipeline:
         )
         return result
 
-    async def _remove_earlier_versions(self, title: str, document_id: str) -> int:
-        """Delete the chunks of other documents with the same title. Returns how many."""
+    async def _remove_earlier_versions(self, title: str, document_id: str, matter: str | None) -> int:
+        """Delete the chunks of other documents with the same title in the same matter. Returns how many.
+
+        Limited to the matter so that an upload to one case can't remove another case's file.
+        """
         escaped = title.replace("'", "''")
-        ids = await self._search.find_ids(f"title eq '{escaped}' and document_id ne '{document_id}'")
+        same_matter = "matter eq null" if matter is None else "matter eq '{}'".format(matter.replace("'", "''"))
+        ids = await self._search.find_ids(f"title eq '{escaped}' and document_id ne '{document_id}' and {same_matter}")
         if ids:
             await self._search.delete_documents(ids)
         logger.info("earlier_versions_removed", title=title, chunks=len(ids))

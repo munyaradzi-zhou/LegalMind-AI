@@ -10,6 +10,10 @@ Run it:
     legalmind-mcp --transport streamable-http       # HTTP on http://127.0.0.1:8001/mcp
     legalmind-mcp --transport streamable-http --remote --host 0.0.0.0   # as deployed on Azure
 
+What the tools can see is what the API lets this server's identity see (document-level
+security trimming): signed in with its own app identity the deployed server only reaches
+public law (legislation and published rulings), never a client's case files.
+
 Remote mode is for other people's agents: every request needs the API key
 (``Authorization: Bearer <key>`` or ``X-API-Key``), sessions are stateless so the server
 can scale out, ``GET /health`` answers without a key for the platform's probes, and
@@ -18,6 +22,8 @@ ingest_document is left out (it reads files from the caller's own disk).
 Configuration (environment):
     LEGALMIND_API_URL      API base URL (default http://localhost:8000)
     LEGALMIND_API_TOKEN    optional bearer token, when the API requires Entra ID sign-in
+    LEGALMIND_API_SCOPE    or sign in with this server's own Azure identity (managed
+                           identity on Azure), e.g. api://<api client id>/.default
     LEGALMIND_MCP_API_KEY  the key remote clients must send (required with --remote)
 """
 
@@ -46,7 +52,9 @@ DocumentType = Literal["legislation", "court_filing", "contract", "correspondenc
 INSTRUCTIONS = """\
 LegalMind answers Dutch legal questions with citations, from an indexed knowledge base of
 Dutch legislation (Burgerlijk Wetboek Boek 7: tenancy, employment, insurance), court rulings,
-and a law firm's case files (contracts, correspondence, scanned letters and forms).
+and a law firm's case files (contracts, correspondence, scanned letters and forms). Case files
+are only visible to the people working on that case: through this server you may only reach
+public law, so say so when a question needs a client's file.
 Prefer ask_legal_question for questions that need an answer, search_legal_documents to find
 passages, and pass the returned session_id back to ask follow-up questions in the same
 conversation. Check `grounding` before relying on an answer. Answers are not legal advice
@@ -73,9 +81,27 @@ def _verify() -> ssl.SSLContext | bool:
     return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 
 
-def _client() -> httpx.AsyncClient:
-    headers = {"User-Agent": "legalmind-mcp"}
+_credential: Any = None
+
+
+async def _api_token() -> str | None:
+    """A bearer token for the API: the configured one, or one for this server's own identity."""
     if token := os.getenv("LEGALMIND_API_TOKEN"):
+        return token
+    scope = os.getenv("LEGALMIND_API_SCOPE")
+    if not scope:
+        return None
+    global _credential  # one credential per process: it caches the token
+    if _credential is None:
+        from azure.identity.aio import DefaultAzureCredential
+
+        _credential = DefaultAzureCredential()
+    return str((await _credential.get_token(scope)).token)
+
+
+async def _client() -> httpx.AsyncClient:
+    headers = {"User-Agent": "legalmind-mcp"}
+    if token := await _api_token():
         headers["Authorization"] = f"Bearer {token}"
     return httpx.AsyncClient(
         base_url=os.getenv("LEGALMIND_API_URL", "http://localhost:8000").rstrip("/"),
@@ -86,7 +112,7 @@ def _client() -> httpx.AsyncClient:
 
 
 async def _request(method: str, path: str, **kwargs: Any) -> Any:
-    async with _client() as client:
+    async with await _client() as client:
         response = await client.request(method, path, **kwargs)
     if response.is_error:
         # A readable error for the calling agent instead of a stack trace.
@@ -165,14 +191,18 @@ async def ask_legal_question(
 
 async def ingest_document(
     file_path: str,
+    matter: str,
     document_type: DocumentType = "contract",
     title: str | None = None,
     language: str = "nl",
+    privileged: bool = False,
 ) -> dict[str, Any]:
-    """Add a local file (PDF, DOCX, TXT or image) to the knowledge base.
+    """Add a local file (PDF, DOCX, TXT or image) to the knowledge base (needs the Admin role).
 
-    The document is stored, analysed, chunked, enriched with entities, embedded and indexed.
-    Returns the new document_id, the number of chunks and the status.
+    `matter` decides who may see it: the case's matter number (e.g. BM/2026/H-0412) for a
+    client's file, or "public" for legislation and published rulings. `privileged` hides it
+    from paralegals. The document is stored, analysed, chunked, enriched with entities,
+    embedded and indexed. Returns the new document_id, the number of chunks and the status.
     """
     path = Path(file_path).expanduser()
     if not path.is_file():
@@ -182,7 +212,12 @@ async def ingest_document(
     content_type = CONTENT_TYPES.get(path.suffix.lower())
     if content_type is None:
         raise ValueError(f"Unsupported file type {path.suffix}; use one of {', '.join(CONTENT_TYPES)}")
-    form = {"document_type": document_type, "language": language}
+    form = {
+        "document_type": document_type,
+        "language": language,
+        "matter": matter,
+        "privileged": str(privileged).lower(),
+    }
     if title:
         form["title"] = title
     files = {"file": (path.name, path.read_bytes(), content_type)}

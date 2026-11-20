@@ -8,10 +8,12 @@ import uuid
 from typing import TYPE_CHECKING, Any
 
 import structlog
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from sse_starlette.sse import EventSourceResponse
 
+from legalmind.access import Principal
 from legalmind.agents.orchestrator import Orchestrator
+from legalmind.api.middleware.auth import get_principal
 from legalmind.api.models.requests import ChatRequest
 from legalmind.api.models.responses import ChatResponse, Citation, Grounding
 from legalmind.config import get_settings
@@ -33,7 +35,10 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("", response_model=ChatResponse)
-async def chat(request: ChatRequest) -> ChatResponse | EventSourceResponse:
+async def chat(
+    request: ChatRequest,
+    principal: Principal = Depends(get_principal),  # noqa: B008
+) -> ChatResponse | EventSourceResponse:
     """Process a chat message through the agentic pipeline.
 
     Flow:
@@ -45,6 +50,8 @@ async def chat(request: ChatRequest) -> ChatResponse | EventSourceResponse:
 
     Supports streaming via Server-Sent Events when `stream=True`.
     """
+    # The caller is whoever signed the request in, never what the body claims.
+    request.user_id = principal.user_id
     logger.info("chat_request", user_id=request.user_id, session_id=request.session_id, stream=request.stream)
 
     # Initialize services
@@ -60,6 +67,11 @@ async def chat(request: ChatRequest) -> ChatResponse | EventSourceResponse:
     # Session management
     session_id = request.session_id or str(uuid.uuid4())
     session = await session_manager.get_session(session_id)
+    if session and session.get("user_id") != principal.user_id:
+        # Someone else's conversation: its messages quote documents this user may not
+        # see. Answer as if it doesn't exist, so session IDs can't be probed.
+        logger.warning("session_access_denied", session_id=session_id, user_id=principal.user_id)
+        raise HTTPException(status_code=404, detail="Session not found")
     if not session:
         session_id = await session_manager.create_session(request.user_id, title=request.message[:50])
 

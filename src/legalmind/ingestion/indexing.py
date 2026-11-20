@@ -204,6 +204,7 @@ class SearchIndexer:
                     "parent_id": chunk.parent_id or "",
                     "source_url": str(chunk.metadata.get("source_url") or chunk.metadata.get("blob_url", "")),
                     "created_at": now,
+                    **access_fields(chunk.metadata),
                 }
             )
 
@@ -319,6 +320,8 @@ class SearchIndexer:
                 "parent_id": chunk.parent_id or "",
                 "source_url": str(merged_meta.get("source_url") or merged_meta.get("blob_url", "")),
                 "created_at": now,
+                # Who may retrieve it (see legalmind.access)
+                **access_fields(merged_meta),
             }
 
             search_docs.append(search_doc)
@@ -336,6 +339,15 @@ class SearchIndexer:
             Number of documents the index accepted.
         """
         return await self._search.upload_documents(documents)
+
+
+def access_fields(metadata: dict[str, Any]) -> dict[str, Any]:
+    """The access-control fields of a chunk. No ``allowed_groups`` means nobody may see it."""
+    return {
+        "matter": metadata.get("matter") or None,
+        "allowed_groups": [str(g) for g in metadata.get("allowed_groups") or []],
+        "privileged": bool(metadata.get("privileged", False)),
+    }
 
 
 def _unique_entity_texts(entities: list[dict[str, Any]]) -> list[str]:
