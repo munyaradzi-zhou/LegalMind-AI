@@ -4,7 +4,8 @@
 #
 #   1. Deploy infrastructure (Bicep), keeping the images the apps currently run
 #   2. Build the API and frontend images and push them to the registry
-#   3. Roll both Container Apps onto the new images
+#   3. Roll the Container Apps onto the new images; on first deploy create the MCP
+#      server's API key in Key Vault and switch the MCP server on
 #   4. Optionally seed the sample documents, then run smoke tests
 #
 # Usage:
@@ -62,6 +63,22 @@ step() { echo; echo "=== $* ==="; }
 DEPLOYMENT_NAME="legalmind-${ENVIRONMENT}"
 API_APP="ca-legalmind-api-${ENVIRONMENT}"
 WEB_APP="ca-legalmind-web-${ENVIRONMENT}"
+MCP_APP="ca-legalmind-mcp-${ENVIRONMENT}"
+MCP_SECRET="mcp-api-key"
+
+# Whoever deploys (a person, or the CD service principal over OIDC) gets Key Vault Secrets
+# Officer on the vault, to create the MCP key. Bicep reads these from the environment.
+# The object ID is the token's "oid" claim, so no Microsoft Graph permission is needed.
+token_claim() {
+  local payload
+  payload=$(az account get-access-token --query accessToken -o tsv | cut -d. -f2 | tr '_-' '/+')
+  while (( ${#payload} % 4 )); do payload="${payload}="; done
+  echo "${payload}" | base64 -d 2> /dev/null | grep -o "\"$1\":\"[^\"]*\"" | cut -d'"' -f4
+}
+DEPLOYER_PRINCIPAL_ID=$(token_claim oid)
+DEPLOYER_PRINCIPAL_TYPE=User
+[[ "$(az account show --query user.type -o tsv)" == "servicePrincipal" ]] && DEPLOYER_PRINCIPAL_TYPE=ServicePrincipal
+export DEPLOYER_PRINCIPAL_ID DEPLOYER_PRINCIPAL_TYPE
 
 # Names and URLs are read from the resources themselves, not from deployment outputs:
 # a cancelled or failed deployment has no outputs, but the resources are still there.
@@ -77,11 +94,39 @@ current_tag() {
 
 deploy_infra() { # $1 = API image tag, $2 = frontend image tag ("" = placeholder image)
   : "${APIM_PUBLISHER_EMAIL:?Set APIM_PUBLISHER_EMAIL (API Management needs a publisher email)}"
-  API_IMAGE_TAG="$1" FRONTEND_IMAGE_TAG="$2" az deployment group create \
+  local mcp_enabled=false
+  mcp_key_exists && mcp_enabled=true
+  MCP_ENABLED="${mcp_enabled}" API_IMAGE_TAG="$1" FRONTEND_IMAGE_TAG="$2" az deployment group create \
     -g "${RESOURCE_GROUP}" -n "${DEPLOYMENT_NAME}" \
     --template-file "${ROOT}/infra/main.bicep" \
     --parameters "${ROOT}/infra/parameters/${ENVIRONMENT}.bicepparam" \
     -o none
+}
+
+key_vault() { az keyvault list -g "${RESOURCE_GROUP}" --query "[0].name" -o tsv 2> /dev/null || true; }
+
+mcp_key_exists() {
+  local vault
+  vault=$(key_vault)
+  [[ -n "${vault}" ]] && az keyvault secret show --vault-name "${vault}" -n "${MCP_SECRET}" --query id -o tsv > /dev/null 2>&1
+}
+
+# Create the MCP server's API key once. It goes straight from openssl into Key Vault and is
+# never printed; read it with: az keyvault secret show --vault-name <vault> -n mcp-api-key
+create_mcp_key() {
+  local vault
+  vault=$(key_vault)
+  # Bicep has just granted Key Vault Secrets Officer; role assignments take minutes to apply
+  for _ in $(seq 1 30); do
+    if az keyvault secret set --vault-name "${vault}" -n "${MCP_SECRET}" \
+      --value "$(openssl rand -hex 32)" --content-type "api-key" -o none 2> /dev/null; then
+      echo "Created the MCP API key in ${vault}."
+      return 0
+    fi
+    sleep 10
+  done
+  echo "Could not create the MCP API key in ${vault} (is Key Vault Secrets Officer active yet?)" >&2
+  return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -135,9 +180,23 @@ else
   echo "Infrastructure unchanged since ${RUNNING_TAG} - updating the container images only."
   az containerapp update -g "${RESOURCE_GROUP}" -n "${API_APP}" --image "${LOGIN_SERVER}/legalmind-api:${TAG}" -o none
   az containerapp update -g "${RESOURCE_GROUP}" -n "${WEB_APP}" --image "${LOGIN_SERVER}/legalmind-frontend:${TAG}" -o none
+  if az containerapp show -g "${RESOURCE_GROUP}" -n "${MCP_APP}" -o none 2> /dev/null; then
+    az containerapp update -g "${RESOURCE_GROUP}" -n "${MCP_APP}" --image "${LOGIN_SERVER}/legalmind-api:${TAG}" -o none
+  fi
+fi
+
+# First deploy of the MCP server: create its key, then apply the template again to add the app
+if [[ "${SKIP_INFRA}" == false ]] && ! mcp_key_exists; then
+  create_mcp_key
+  deploy_infra "${TAG}" "${TAG}"
+fi
+MCP_URL=""
+if az containerapp show -g "${RESOURCE_GROUP}" -n "${MCP_APP}" -o none 2> /dev/null; then
+  MCP_URL="$(app_url "${MCP_APP}")/mcp"
 fi
 echo "API:      ${API_URL}"
 echo "Frontend: ${WEB_URL}"
+echo "MCP:      ${MCP_URL:-not deployed}"
 
 # ---------------------------------------------------------------------------
 step "4/4 Seed and smoke tests"
@@ -153,10 +212,21 @@ if [[ "${SEED}" == true ]]; then
 fi
 if [[ "${SKIP_SMOKE}" == false ]]; then
   APP_URL="${API_URL}" bash "${ROOT}/scripts/run-smoke-tests.sh"
+  if [[ -n "${MCP_URL}" ]]; then
+    MCP_BASE="${MCP_URL%/mcp}"
+    for _ in $(seq 1 36); do
+      curl -sf "${MCP_BASE}/health" > /dev/null && break
+      sleep 5
+    done
+    curl -sf "${MCP_BASE}/health" > /dev/null || { echo "MCP server: /health is not answering" >&2; exit 1; }
+    STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${MCP_URL}" -H "Content-Type: application/json" -d '{}')
+    [[ "${STATUS}" == "401" ]] || { echo "MCP server answered ${STATUS} without an API key (expected 401)" >&2; exit 1; }
+    echo "MCP server: healthy, and refuses requests without the key."
+  fi
 fi
 
 if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
-  { echo "api-url=${API_URL}"; echo "frontend-url=${WEB_URL}"; } >> "${GITHUB_OUTPUT}"
+  { echo "api-url=${API_URL}"; echo "frontend-url=${WEB_URL}"; echo "mcp-url=${MCP_URL}"; } >> "${GITHUB_OUTPUT}"
 fi
 echo
 echo "Deployed ${TAG} to ${ENVIRONMENT}: ${WEB_URL}"

@@ -10,3 +10,8 @@ param apimPublisherEmail = readEnvironmentVariable('APIM_PUBLISHER_EMAIL', 'admi
 // Image tags are set at deploy time (scripts/deploy.sh, CD workflow); empty = placeholder image.
 param apiImageTag = readEnvironmentVariable('API_IMAGE_TAG', '')
 param frontendImageTag = readEnvironmentVariable('FRONTEND_IMAGE_TAG', '')
+
+// Remote MCP server and the deployer's Key Vault role, set by scripts/deploy.sh
+param mcpEnabled = bool(readEnvironmentVariable('MCP_ENABLED', 'false'))
+param deployerPrincipalId = readEnvironmentVariable('DEPLOYER_PRINCIPAL_ID', '')
+param deployerPrincipalType = readEnvironmentVariable('DEPLOYER_PRINCIPAL_TYPE', 'User')
