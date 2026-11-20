@@ -27,6 +27,7 @@ from legalmind.retrieval.query_rewriter import QueryRewriter
 from legalmind.services.audit_logger import AuditLogger
 from legalmind.services.azure_openai import AzureOpenAIService
 from legalmind.services.content_safety import PiiDetectionResult, apply_redaction
+from legalmind.telemetry import annotate_request, stage
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -75,7 +76,8 @@ async def chat(
         raise HTTPException(status_code=404, detail="Session not found")
 
     # ── Pre-flight guardrails: check user input ──────────────────────
-    input_check = await guardrails.check_input(request.message)
+    with stage("guardrails.input"):
+        input_check = await guardrails.check_input(request.message)
 
     # Conversations are stored with personal data replaced by category markers
     # ("[Person]"): the model answers from the original, Cosmos only keeps the redacted text.
@@ -110,6 +112,7 @@ async def chat(
             session_id=session_id,
             user_id=request.user_id,
         )
+        annotate_request(grounding="blocked", agent="guardrails", blocked=True)
         return ChatResponse(
             message=input_check.blocked_reason,
             session_id=session_id,
@@ -132,7 +135,9 @@ async def chat(
 
         # Retrieve relevant context (optionally limited to specific documents)
         filters = SearchFilters(document_ids=request.document_ids) if request.document_ids else None
-        search_results = await search_engine.hybrid_search(query, filters=filters, top=8)
+        with stage("retrieval") as span:
+            search_results = await search_engine.hybrid_search(query, filters=filters, top=8)
+            span.set_attribute("legalmind.results", len(search_results))
     else:
         # Local development without Azure AI Search: answer without document context.
         logger.warning("search_skipped", reason="AZURE_SEARCH_ENDPOINT not set")
@@ -155,11 +160,12 @@ async def chat(
     if recent_turns:
         additional_context["conversation_history"] = recent_turns
 
-    orchestrator_response = await orchestrator.process_message(
-        request.message,
-        conversation_id=session_id,
-        additional_context=additional_context or None,
-    )
+    with stage("agent"):
+        orchestrator_response = await orchestrator.process_message(
+            request.message,
+            conversation_id=session_id,
+            additional_context=additional_context or None,
+        )
     routing = orchestrator_response.routing
     agent_result = orchestrator_response.agent_response
 
@@ -179,7 +185,8 @@ async def chat(
     agent_response = {"content": agent_result.content, "agent_name": agent_result.agent_name}
 
     # ── Post-flight guardrails: check AI output ──────────────────────
-    output_check = await guardrails.check_output(agent_response["content"], context, question=request.message)
+    with stage("guardrails.output"):
+        output_check = await guardrails.check_output(agent_response["content"], context, question=request.message)
 
     await audit.log_safety_check(
         check_type="output",
@@ -250,6 +257,13 @@ async def chat(
 
     # Summarize if conversation is long
     await conversation.maybe_summarize()
+
+    annotate_request(
+        grounding=grounding,
+        agent=agent_response.get("agent_name", "orchestrator"),
+        citations=len(citations),
+        blocked=output_check.verdict == GuardrailVerdict.BLOCK,
+    )
 
     if request.stream:
         return EventSourceResponse(

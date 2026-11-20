@@ -49,6 +49,9 @@ param frontendImageTag string = ''
 @description('Deploy the remote MCP server (needs the Key Vault secret mcp-api-key; scripts/deploy.sh handles it).')
 param mcpEnabled bool = false
 
+@description('Who gets the alert emails (defaults to the API Management publisher email).')
+param alertEmail string = apimPublisherEmail
+
 @description('Put the data services behind private endpoints in a VNet and turn off their public access. About €50 a month more; off by default.')
 param networkIsolation bool = false
 
@@ -242,6 +245,22 @@ module containerApps 'modules/container-apps.bicep' = {
     infrastructureSubnetId: networkIsolation ? network!.outputs.appsSubnetId : ''
     apiAudience: apiAudience
     matterGroups: matterGroups
+  }
+}
+
+// =============================================================================
+// Alerts and the operations workbook (docs/runbook.md says what to do when one fires)
+// =============================================================================
+module alerts 'modules/alerts.bicep' = {
+  name: 'alerts-${environmentName}'
+  params: {
+    location: location
+    environmentName: environmentName
+    projectName: projectName
+    alertEmail: alertEmail
+    appInsightsId: monitoring.outputs.appInsightsId
+    openAiName: aiFoundry.outputs.openAiName
+    apiAppName: containerApps.outputs.apiAppName
   }
 }
 
