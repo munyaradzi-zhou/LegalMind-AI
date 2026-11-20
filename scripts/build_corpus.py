@@ -92,6 +92,10 @@ RULINGS = [
 ]
 RS = "{http://www.rechtspraak.nl/schema/rechtspraak-1.0}"
 
+# Covered by legal professional privilege: the firm's own case analysis. Only the
+# Lawyer role retrieves these (see legalmind.access).
+PRIVILEGED = {"sample-case-summary"}
+
 # The three text files the project started with
 SAMPLES = [
     ("sample-case-summary", "sample_data/case_files/sample_case_summary_nl.txt", "case_file", "VRB/2024/ZK-9012"),
@@ -550,6 +554,7 @@ def build(offline: bool) -> list[dict[str, Any]]:
         )
 
     for d in docs:
+        d["privileged"] = d["id"] in PRIVILEGED
         d["sha256"] = sha256((ROOT / d["file"]).read_bytes())
     return docs
 

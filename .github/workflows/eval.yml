@@ -69,10 +69,12 @@ jobs:
       - name: Use the dev environment's service endpoints
         # The deployed API's settings, minus its managed identity and telemetry:
         # here the code signs in as the CI identity and doesn't report to App Insights.
+        # Sign-in is off on the runner: quality is measured over the whole corpus as an
+        # unrestricted user; trimming has its own tests and evaluation (evaluate_access).
         run: |
           az containerapp show -g rg-legalmind-dev -n ca-legalmind-api-dev \
             --query "properties.template.containers[0].env[?value!=null].[name,value]" -o tsv |
-            grep -vE '^(AZURE_CLIENT_ID|APPLICATIONINSIGHTS_CONNECTION_STRING)\b' |
+            grep -vE '^(AZURE_CLIENT_ID|APPLICATIONINSIGHTS_CONNECTION_STRING|AUTH_ENABLED|APP_ENV)\b' |
             awk -F'\t' '{print $1"="$2}' >> "$GITHUB_ENV"
 
       - name: Start this branch's API

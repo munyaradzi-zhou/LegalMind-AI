@@ -134,8 +134,9 @@ export APIM_PUBLISHER_EMAIL=you@example.com
 curl -X POST localhost:8000/api/chat -H "Content-Type: application/json" \
   -d '{"message": "Wat zijn de opzegvoorwaarden in dit contract?", "stream": false}'
 
-# Ingest a document
-curl -X POST localhost:8000/api/ingest -F "file=@contract.pdf" -F "document_type=contract" -F "language=nl"
+# Ingest a document (Admin role); the matter decides who may see it ("public" for legislation)
+curl -X POST localhost:8000/api/ingest -F "file=@contract.pdf" -F "document_type=contract" -F "language=nl" \
+  -F "matter=BM/2026/H-0412"
 
 # Search the knowledge base
 curl -X POST localhost:8000/api/search -H "Content-Type: application/json" \
@@ -168,7 +169,7 @@ LEGALMIND_API_URL=https://<your-api> legalmind-mcp --transport streamable-http
 Every push runs the same gates CI enforces — `make check` locally:
 
 - **Ruff** lint and formatting, **mypy `--strict`** over the whole package
-- **144 unit tests** (chunking, contextual headers, guardrails and grounding, PII, confidence scoring, context building, prompts, query rewriting, reflection, token budgets, index schema, orchestrator, MCP tools)
+- **177 unit tests** (document-level access control and leakage, chunking, contextual headers, guardrails and grounding, PII, confidence scoring, context building, prompts, query rewriting, reflection, token budgets, index schema, orchestrator, MCP tools, evaluation gate)
 - **Bandit** and **pip-audit** security scans
 - **Bicep** compilation of every environment, **Docker** builds of both images, **shellcheck**
 

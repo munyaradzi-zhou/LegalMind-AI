@@ -43,6 +43,12 @@ param frontendImageTag string = ''
 @description('Deploy the remote MCP server (needs the Key Vault secret mcp-api-key; scripts/deploy.sh handles it).')
 param mcpEnabled bool = false
 
+@description('Audiences the API accepts in Entra ID tokens (from scripts/setup_entra.sh). Empty = sign-in off.')
+param apiAudience string = ''
+
+@description('Matter number -> Entra group object ID, as JSON (from scripts/setup_entra.sh).')
+param matterGroups string = '{}'
+
 @description('Object ID of whoever runs the deployment; granted Key Vault Secrets Officer to manage the MCP key.')
 param deployerPrincipalId string = ''
 
@@ -200,6 +206,8 @@ module containerApps 'modules/container-apps.bicep' = {
     blobEndpoint: storage.outputs.blobEndpoint
     keyVaultUri: keyVault.outputs.keyVaultUri
     mcpEnabled: mcpEnabled
+    apiAudience: apiAudience
+    matterGroups: matterGroups
   }
 }
 

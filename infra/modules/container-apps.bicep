@@ -73,9 +73,20 @@ param keyVaultUri string
 @description('Deploy the remote MCP server. Needs the secret mcp-api-key in Key Vault (scripts/deploy.sh creates it).')
 param mcpEnabled bool = false
 
+@description('Audiences the API accepts in Entra ID tokens ("<client id>,api://<client id>", from scripts/setup_entra.sh). Empty = sign-in off.')
+param apiAudience string = ''
+
+@description('Matter number -> Entra group object ID, as JSON (MATTER_GROUPS, from scripts/setup_entra.sh).')
+param matterGroups string = '{}'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
+// Sign-in is on once an app registration exists; the MCP server then calls the API as
+// itself (app role Service), which gives it public law only.
+var signInEnabled = !empty(apiAudience)
+var apiScope = signInEnabled ? 'api://${split(apiAudience, ',')[0]}/.default' : ''
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -184,6 +195,10 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_STORAGE_ACCOUNT_URL', value: blobEndpoint }
             { name: 'AZURE_KEYVAULT_URL', value: keyVaultUri }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
+            { name: 'AUTH_ENABLED', value: string(signInEnabled) }
+            { name: 'AZURE_TENANT_ID', value: tenant().tenantId }
+            { name: 'AZURE_API_AUDIENCE', value: apiAudience }
+            { name: 'MATTER_GROUPS', value: matterGroups }
           ]
           probes: apiUsesPlaceholder ? [] : healthProbes
         }
@@ -291,6 +306,8 @@ resource mcpApp 'Microsoft.App/containerApps@2024-03-01' = if (mcpEnabled && !ap
           env: [
             { name: 'LEGALMIND_API_URL', value: 'https://${apiApp.properties.configuration.ingress.fqdn}' }
             { name: 'LEGALMIND_MCP_API_KEY', secretRef: 'mcp-api-key' }
+            { name: 'AZURE_CLIENT_ID', value: identityClientId }
+            { name: 'LEGALMIND_API_SCOPE', value: apiScope }
           ]
           probes: [
             {
