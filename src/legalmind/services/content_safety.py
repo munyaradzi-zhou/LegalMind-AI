@@ -372,21 +372,37 @@ class ContentSafetyService:
         if not detection.has_pii:
             return text
 
-        # Sort entities by offset in reverse order to preserve positions
-        sorted_entities = sorted(detection.entities, key=lambda e: e.offset, reverse=True)
-        redacted = text
-
-        for entity in sorted_entities:
-            replacement = replacement_format.format(category=entity.category)
-            redacted = redacted[: entity.offset] + replacement + redacted[entity.offset + entity.length :]
-
+        redacted = apply_redaction(text, detection.entities, replacement_format=replacement_format)
         logger.info(
             "pii_redacted",
             original_length=len(text),
             redacted_length=len(redacted),
-            entities_redacted=len(sorted_entities),
+            entities_redacted=len(detection.entities),
         )
         return redacted
+
+
+def apply_redaction(text: str, entities: list[PiiEntity], *, replacement_format: str = "[{category}]") -> str:
+    """Replace each detected entity in ``text`` with its category marker (``Jan de Vries`` -> ``[Person]``).
+
+    AI Language and the Dutch regexes can report overlapping spans (a postcode inside an
+    address); overlapping spans are merged and take the category of the longest one. On a tie
+    the later entity wins: the Dutch regexes run after AI Language and are more specific (a
+    valid BSN that AI Language calls a phone number is stored as ``[NLBSNNumber]``).
+    """
+    spans: list[tuple[int, int, str]] = []
+    for entity in sorted(entities, key=lambda e: (e.offset, -e.length)):
+        start, end = entity.offset, entity.offset + entity.length
+        if spans and start < spans[-1][1]:
+            last_start, last_end, category = spans[-1]
+            if end - start >= last_end - last_start:
+                category = entity.category
+            spans[-1] = (last_start, max(last_end, end), category)
+        else:
+            spans.append((start, end, entity.category))
+    for start, end, category in reversed(spans):
+        text = text[:start] + replacement_format.format(category=category) + text[end:]
+    return text
 
 
 def _build_analysis_summary(result: ContentSafetyResult) -> dict[str, Any]:

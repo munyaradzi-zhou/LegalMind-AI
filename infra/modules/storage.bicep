@@ -15,9 +15,13 @@ param projectName string
 @description('Principal ID of the Container App managed identity to grant Storage Blob Data Contributor role.')
 param containerAppPrincipalId string = ''
 
+@description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
+param publicNetworkAccess string = 'Enabled'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -48,8 +52,9 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
     allowSharedKeyAccess: false
     minimumTlsVersion: 'TLS1_2'
     supportsHttpsTrafficOnly: true
+    publicNetworkAccess: publicNetworkAccess
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
       bypass: 'AzureServices'
     }
   }

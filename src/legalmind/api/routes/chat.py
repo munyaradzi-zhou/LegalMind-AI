@@ -26,6 +26,7 @@ from legalmind.retrieval.hybrid_search import HybridSearchEngine, SearchFilters
 from legalmind.retrieval.query_rewriter import QueryRewriter
 from legalmind.services.audit_logger import AuditLogger
 from legalmind.services.azure_openai import AzureOpenAIService
+from legalmind.services.content_safety import PiiDetectionResult, apply_redaction
 
 if TYPE_CHECKING:
     from collections.abc import AsyncGenerator
@@ -72,14 +73,16 @@ async def chat(
         # see. Answer as if it doesn't exist, so session IDs can't be probed.
         logger.warning("session_access_denied", session_id=session_id, user_id=principal.user_id)
         raise HTTPException(status_code=404, detail="Session not found")
-    if not session:
-        session_id = await session_manager.create_session(request.user_id, title=request.message[:50])
-
-    # Store user message
-    await session_manager.add_message(session_id, "user", request.message)
 
     # ── Pre-flight guardrails: check user input ──────────────────────
     input_check = await guardrails.check_input(request.message)
+
+    # Conversations are stored with personal data replaced by category markers
+    # ("[Person]"): the model answers from the original, Cosmos only keeps the redacted text.
+    stored_message = redacted(request.message, input_check.pii_detection)
+    if not session:
+        session_id = await session_manager.create_session(request.user_id, title=stored_message[:50])
+    await session_manager.add_message(session_id, "user", stored_message)
 
     await audit.log_safety_check(
         check_type="input",
@@ -229,13 +232,20 @@ async def chat(
             )
         )
 
-    # Store assistant response
+    # Store the assistant response, redacted like the question (a blocked answer is
+    # replaced by the guardrail's own message, which holds no personal data)
+    stored_response = (
+        redacted(response_content, output_check.pii_detection)
+        if response_content == agent_response["content"]
+        else response_content
+    )
     await session_manager.add_message(
         session_id,
         "assistant",
-        response_content,
+        stored_response,
         agent_name=agent_response.get("agent_name", "orchestrator"),
-        citations=[c.model_dump() for c in citations],
+        # References only: the passages themselves stay in the index, not in every session
+        citations=[c.model_dump(exclude={"chunk_content"}) for c in citations],
     )
 
     # Summarize if conversation is long
@@ -261,6 +271,13 @@ async def chat(
         grounding=grounding,
         groundedness_score=groundedness_score,
     )
+
+
+def redacted(text: str, pii: PiiDetectionResult | None) -> str:
+    """``text`` with the personal data the guardrails found replaced by category markers."""
+    if pii is None or not pii.has_pii:
+        return text
+    return apply_redaction(text, pii.entities)
 
 
 _CITATION_MARKER = re.compile(r"\[(\d+(?:\s*[,;]\s*\d+)*)\]")

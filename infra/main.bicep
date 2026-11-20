@@ -23,6 +23,12 @@ param location string = resourceGroup().location
 @description('Region for Azure AI Search. Defaults to location; set it when that region has no Search capacity.')
 param searchLocation string = location
 
+@description('Region for Azure OpenAI. Defaults to location; set it when that region has no capacity (or the subscription allows one OpenAI account per region).')
+param openAiLocation string = location
+
+@description('Region for the Container Apps environment and, with networkIsolation, its VNet and private endpoints. Defaults to location.')
+param appsLocation string = location
+
 @description('Short project name used in resource names. Lowercase alphanumeric.')
 @minLength(3)
 @maxLength(12)
@@ -43,6 +49,9 @@ param frontendImageTag string = ''
 @description('Deploy the remote MCP server (needs the Key Vault secret mcp-api-key; scripts/deploy.sh handles it).')
 param mcpEnabled bool = false
 
+@description('Put the data services behind private endpoints in a VNet and turn off their public access. About €50 a month more; off by default.')
+param networkIsolation bool = false
+
 @description('Audiences the API accepts in Entra ID tokens (from scripts/setup_entra.sh). Empty = sign-in off.')
 param apiAudience string = ''
 
@@ -55,6 +64,22 @@ param deployerPrincipalId string = ''
 @description('User or ServicePrincipal.')
 @allowed(['User', 'ServicePrincipal'])
 param deployerPrincipalType string = 'User'
+
+// Off: services answer on their public endpoints (Entra ID still required).
+// On: only through the private endpoints below.
+var publicNetworkAccess = networkIsolation ? 'Disabled' : 'Enabled'
+
+// =============================================================================
+// Network isolation (networkIsolation=true): VNet, private endpoints, DNS
+// =============================================================================
+module network 'modules/network.bicep' = if (networkIsolation) {
+  name: 'network-${environmentName}'
+  params: {
+    location: appsLocation
+    environmentName: environmentName
+    projectName: projectName
+  }
+}
 
 // =============================================================================
 // Identity used by both Container Apps (created first so roles can be granted up front)
@@ -88,7 +113,8 @@ module monitoring 'modules/monitoring.bicep' = {
 module aiFoundry 'modules/ai-foundry.bicep' = {
   name: 'ai-foundry-${environmentName}'
   params: {
-    location: location
+    publicNetworkAccess: publicNetworkAccess
+    location: openAiLocation
     environmentName: environmentName
     projectName: projectName
     containerAppPrincipalId: appPrincipalId
@@ -98,6 +124,7 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
 module aiSearch 'modules/ai-search.bicep' = {
   name: 'ai-search-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: searchLocation
     environmentName: environmentName
     projectName: projectName
@@ -108,6 +135,7 @@ module aiSearch 'modules/ai-search.bicep' = {
 module cognitiveServices 'modules/cognitive-services.bicep' = {
   name: 'cognitive-services-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -118,6 +146,7 @@ module cognitiveServices 'modules/cognitive-services.bicep' = {
 module contentUnderstanding 'modules/content-understanding.bicep' = {
   name: 'content-understanding-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -128,6 +157,7 @@ module contentUnderstanding 'modules/content-understanding.bicep' = {
 module contentSafety 'modules/content-safety.bicep' = {
   name: 'content-safety-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -138,6 +168,7 @@ module contentSafety 'modules/content-safety.bicep' = {
 module cosmosDb 'modules/cosmos-db.bicep' = {
   name: 'cosmos-db-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -148,6 +179,7 @@ module cosmosDb 'modules/cosmos-db.bicep' = {
 module storage 'modules/storage.bicep' = {
   name: 'storage-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -158,6 +190,7 @@ module storage 'modules/storage.bicep' = {
 module keyVault 'modules/keyvault.bicep' = {
   name: 'keyvault-${environmentName}'
   params: {
+    publicNetworkAccess: publicNetworkAccess
     location: location
     environmentName: environmentName
     projectName: projectName
@@ -183,7 +216,7 @@ module registry 'modules/container-registry.bicep' = {
 module containerApps 'modules/container-apps.bicep' = {
   name: 'container-apps-${environmentName}'
   params: {
-    location: location
+    location: appsLocation
     environmentName: environmentName
     projectName: projectName
     logAnalyticsId: monitoring.outputs.logAnalyticsId
@@ -206,8 +239,30 @@ module containerApps 'modules/container-apps.bicep' = {
     blobEndpoint: storage.outputs.blobEndpoint
     keyVaultUri: keyVault.outputs.keyVaultUri
     mcpEnabled: mcpEnabled
+    infrastructureSubnetId: networkIsolation ? network!.outputs.appsSubnetId : ''
     apiAudience: apiAudience
     matterGroups: matterGroups
+  }
+}
+
+module privateEndpoints 'modules/private-endpoints.bicep' = if (networkIsolation) {
+  name: 'private-endpoints-${environmentName}'
+  params: {
+    location: appsLocation
+    environmentName: environmentName
+    vnetId: network!.outputs.vnetId
+    subnetId: network!.outputs.privateEndpointSubnetId
+    endpoints: [
+      { name: aiFoundry.outputs.openAiName, resourceId: aiFoundry.outputs.openAiId, groupId: 'account', zone: 'privatelink.openai.azure.com' }
+      { name: aiSearch.outputs.searchServiceName, resourceId: aiSearch.outputs.searchServiceId, groupId: 'searchService', zone: 'privatelink.search.windows.net' }
+      { name: cognitiveServices.outputs.aiServicesName, resourceId: cognitiveServices.outputs.aiServicesId, groupId: 'account', zone: 'privatelink.cognitiveservices.azure.com' }
+      { name: cognitiveServices.outputs.documentIntelligenceName, resourceId: cognitiveServices.outputs.documentIntelligenceId, groupId: 'account', zone: 'privatelink.cognitiveservices.azure.com' }
+      { name: contentUnderstanding.outputs.contentUnderstandingName, resourceId: contentUnderstanding.outputs.contentUnderstandingId, groupId: 'account', zone: 'privatelink.cognitiveservices.azure.com' }
+      { name: contentSafety.outputs.contentSafetyName, resourceId: contentSafety.outputs.contentSafetyId, groupId: 'account', zone: 'privatelink.cognitiveservices.azure.com' }
+      { name: cosmosDb.outputs.cosmosAccountName, resourceId: cosmosDb.outputs.cosmosAccountId, groupId: 'Sql', zone: 'privatelink.documents.azure.com' }
+      { name: storage.outputs.storageAccountName, resourceId: storage.outputs.storageAccountId, groupId: 'blob', zone: 'privatelink.blob.${environment().suffixes.storage}' }
+      { name: keyVault.outputs.keyVaultName, resourceId: keyVault.outputs.keyVaultId, groupId: 'vault', zone: 'privatelink.vaultcore.azure.net' }
+    ]
   }
 }
 
