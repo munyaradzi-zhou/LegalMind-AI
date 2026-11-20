@@ -1,11 +1,13 @@
-"""Azure Cognitive Services client — Language (NER, summarization), Translator, Document Intelligence."""
+"""Azure Cognitive Services client — Language (NER, summarization) and Translator.
+
+Document layout extraction lives in :mod:`legalmind.ingestion.document_intelligence`.
+"""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
 import structlog
-from azure.ai.formrecognizer.aio import DocumentAnalysisClient
 from azure.ai.textanalytics.aio import TextAnalyticsClient
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -28,7 +30,6 @@ class CognitiveServicesClient:
     Wraps:
     - Azure AI Language (NER, key phrase extraction, summarization, sentiment)
     - Azure Translator (Dutch <-> English)
-    - Azure Document Intelligence (layout extraction, form recognition)
     """
 
     def __init__(self) -> None:
@@ -37,7 +38,6 @@ class CognitiveServicesClient:
         self._language_endpoint = settings.cognitive.language_endpoint
         self._translator_endpoint = settings.cognitive.translator_endpoint
         self._translator_region = settings.cognitive.translator_region
-        self._doc_intelligence_endpoint = settings.cognitive.document_intelligence_endpoint
 
     # ─── Azure AI Language ────────────────────────────────────────────────
 
@@ -267,74 +267,3 @@ class CognitiveServicesClient:
             data = response.json()
 
         return [item["translations"][0]["text"] for item in data]
-
-    # ─── Azure Document Intelligence ─────────────────────────────────────
-
-    def _get_doc_intelligence_client(self) -> DocumentAnalysisClient:
-        return DocumentAnalysisClient(
-            endpoint=self._doc_intelligence_endpoint,
-            credential=self._credential,
-        )
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
-    async def analyze_document(
-        self,
-        document_bytes: bytes,
-        *,
-        model_id: str = "prebuilt-layout",
-    ) -> dict[str, Any]:
-        """Analyze a document using Azure Document Intelligence.
-
-        Extracts text, tables, key-value pairs, and structural elements.
-
-        Args:
-            document_bytes: Raw document bytes (PDF, DOCX, images).
-            model_id: Model to use ('prebuilt-layout', 'prebuilt-document', etc.).
-
-        Returns:
-            Extracted document structure including pages, tables, and paragraphs.
-        """
-        logger.info("analyze_document", model_id=model_id, size_bytes=len(document_bytes))
-
-        async with self._get_doc_intelligence_client() as client:
-            poller = await client.begin_analyze_document(model_id, document_bytes)
-            result = await poller.result()
-
-        pages = []
-        for page in result.pages:
-            page_data: dict[str, Any] = {
-                "page_number": page.page_number,
-                "width": page.width,
-                "height": page.height,
-                "lines": [{"content": line.content, "polygon": line.polygon} for line in (page.lines or [])],
-            }
-            pages.append(page_data)
-
-        tables = []
-        for table in result.tables or []:
-            cells = [
-                {
-                    "row_index": cell.row_index,
-                    "column_index": cell.column_index,
-                    "content": cell.content,
-                    "kind": cell.kind,
-                }
-                for cell in table.cells
-            ]
-            tables.append(
-                {
-                    "row_count": table.row_count,
-                    "column_count": table.column_count,
-                    "cells": cells,
-                }
-            )
-
-        paragraphs = [{"content": p.content, "role": p.role} for p in (result.paragraphs or [])]
-
-        return {
-            "content": result.content,
-            "pages": pages,
-            "tables": tables,
-            "paragraphs": paragraphs,
-            "page_count": len(pages),
-        }

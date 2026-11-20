@@ -224,6 +224,8 @@ class IngestionPipeline:
             # ── Stage 2: Analyze document ────────────────────────────────
             analysis = await self._analyze_document(document_bytes, analysis_type, content_type)
             result.page_count = analysis.get("page_count", 0)
+            if analysis.get("mean_word_confidence") is not None:
+                result.metadata["mean_word_confidence"] = analysis["mean_word_confidence"]
 
             # ── Stage 3: Chunk the document ──────────────────────────────
             chunks = self._chunk_document(analysis, doc_id, doc_metadata)
@@ -370,6 +372,9 @@ class IngestionPipeline:
                 ],
                 "paragraphs": di_result.paragraphs,
                 "page_count": di_result.page_count,
+                "page_boundaries": di_result.page_boundaries,
+                "content_format": di_result.content_format,
+                "mean_word_confidence": di_result.mean_word_confidence,
                 "key_value_pairs": [
                     {"key": kv.key, "value": kv.value, "confidence": kv.confidence} for kv in di_result.key_value_pairs
                 ],
@@ -412,10 +417,12 @@ class IngestionPipeline:
             content_length=len(full_text),
         )
 
-        # Append table content as markdown to provide structured data context
-        table_text = self._tables_to_text(analysis.get("tables", []))
-        if table_text:
-            full_text = full_text + "\n\n" + table_text
+        # Markdown content already holds its tables in place; plain text gets them appended
+        if analysis.get("content_format") != "markdown":
+            table_text = self._tables_to_text(analysis.get("tables", []))
+            if table_text:
+                full_text = full_text + "\n\n" + table_text
+        page_boundaries = analysis.get("page_boundaries") or None
 
         chunk_metadata = {k: v for k, v in metadata.items() if isinstance(v, (str, int, float, bool))}
 
@@ -424,6 +431,7 @@ class IngestionPipeline:
                 full_text,
                 document_id,
                 paragraphs=paragraphs,
+                page_boundaries=page_boundaries,
                 metadata=chunk_metadata,
             )
         else:
@@ -431,6 +439,7 @@ class IngestionPipeline:
                 full_text,
                 document_id,
                 paragraphs=paragraphs,
+                page_boundaries=page_boundaries,
                 metadata=chunk_metadata,
             )
 

@@ -157,6 +157,5 @@ def mock_cognitive_services():
         service.extract_key_phrases = AsyncMock(return_value=[[]])
         service.summarize_text = AsyncMock(return_value=[""])
         service.translate = AsyncMock(return_value=["Translated text"])
-        service.analyze_document = AsyncMock(return_value={"content": "", "pages": [], "tables": [], "paragraphs": []})
         mock.return_value = service
         yield service

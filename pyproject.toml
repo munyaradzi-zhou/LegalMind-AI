@@ -13,7 +13,7 @@ authors = [{ name = "Munyaradzi Zhou" }]
 
 dependencies = [
     # Azure AI Services
-    "azure-ai-formrecognizer>=3.3.0",
+    "azure-ai-documentintelligence>=1.0.2",  # Document Intelligence API 2024-11-30 (Markdown output)
     "azure-ai-textanalytics>=5.3.0",
     "azure-ai-translation-text>=1.0.0",
     "azure-ai-contentsafety>=1.0.0",
