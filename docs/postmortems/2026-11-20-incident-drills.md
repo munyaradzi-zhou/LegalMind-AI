@@ -38,7 +38,7 @@ All five alerts fired and emailed the action group. Four drills went as expected
 
 1. **The quality alert could never have fired.** The grounding label was set on FastAPI's internal `fastapi.endpoint` span, which doesn't reach the `requests` table. *Fixed:* the observability middleware remembers the request's own span, and a unit test covers it.
 2. **The runbook's fix for a lost role didn't work.** CD and `deploy.sh` skip the Bicep template when `infra/` hasn't changed in git, so drift (a deleted role assignment, a changed setting) is never repaired. *Fixed:* `deploy.sh --reapply-infra` and the CD workflow's `reapply_infra` input; the runbook now uses them.
-3. **Real throttling on dev.** The OpenAI throttling alert fired three minutes before the drill. The evaluation gate on PR #4 was running at the time against dev's 30K TPM deployment. *Follow-up:* give evaluations their own deployment, or more capacity, so they can't throttle the app.
+3. **Real throttling on dev.** The OpenAI throttling alert fired three minutes before the drill. The evaluation gate on PR #4 was running at the time against dev's 30K TPM deployment. Drill 1 then throttled the model further while that evaluation was still running, and the evaluation crashed on a 429 at 21:32:59 (the gate reported a failure that had nothing to do with the PR; it was re-run on main). *Follow-up:* give evaluations their own deployment, or more capacity, so they can't throttle the app; before a drill, check that no evaluation or deployment is using the environment.
 4. **Restarts are hard to trigger on purpose.** A revision restart creates new replicas, not a container restart. SIGKILL to PID 1 from inside the container is ignored by the kernel. SIGTERM works. *Documented* in the runbook.
 5. **The deploy smoke test was flaky.** Its 30 s timeout failed the last three CD runs after successful deploys, because a chat answer takes 15–35 s. *Fixed:* 120 s.
 6. **Error messages hide the cause.** The 5xx alert's exceptions said only `HttpResponseError`; the `Forbidden` was in the container logs. *Fixed in the runbook:* its first queries now include the console logs.
@@ -51,5 +51,5 @@ All five alerts fired and emailed the action group. Four drills went as expected
 
 ## Prevention
 
-- Run these drills again after changes to the alerts or the deployment.
+- Run these drills again after changes to the alerts or the deployment, and only when no evaluation run or deployment is using the environment (`gh run list --status in_progress`).
 - Follow-up (L6): a separate model deployment, or more capacity, for evaluations.
