@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from azure.core.credentials import TokenCredential
     from openai.types.chat import ChatCompletionMessageParam
 
+from legalmind.telemetry import record_tokens, tracer
+
 logger = structlog.get_logger(__name__)
 
 
@@ -96,12 +98,12 @@ class AzureOpenAIService:
         if response_format is not None:
             kwargs["response_format"] = response_format  # e.g. {"type": "json_object"}
 
-        response = await self._client.chat.completions.create(**kwargs)
-        logger.info(
-            "chat_completion_response",
-            usage_prompt=response.usage.prompt_tokens if response.usage else 0,
-            usage_completion=response.usage.completion_tokens if response.usage else 0,
-        )
+        with tracer.start_as_current_span(f"chat {self._chat_deployment}") as span:
+            response = await self._client.chat.completions.create(**kwargs)
+            usage_in = response.usage.prompt_tokens if response.usage else 0
+            usage_out = response.usage.completion_tokens if response.usage else 0
+            record_tokens(span, self._chat_deployment, usage_in, usage_out)
+        logger.info("chat_completion_response", usage_prompt=usage_in, usage_completion=usage_out)
         return cast("dict[str, Any]", response.model_dump())
 
     async def chat_completion_stream(

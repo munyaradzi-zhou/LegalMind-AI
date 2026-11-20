@@ -10,6 +10,10 @@ on:
       sha:
         type: string
         required: true
+      reapply_infra:
+        description: Apply the Bicep template even if infra/ is unchanged (repairs drift)
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -40,4 +44,6 @@ jobs:
         id: deploy
         env:
           APIM_PUBLISHER_EMAIL: ${{ vars.APIM_PUBLISHER_EMAIL }}
-        run: bash scripts/deploy.sh --environment "${{ inputs.environment }}" --tag "${{ inputs.sha }}"
+        run: >-
+          bash scripts/deploy.sh --environment "${{ inputs.environment }}" --tag "${{ inputs.sha }}"
+          ${{ inputs.reapply_infra && '--reapply-infra' || '' }}

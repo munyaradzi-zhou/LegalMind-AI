@@ -207,6 +207,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_KEYVAULT_URL', value: keyVaultUri }
             { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: appInsightsConnectionString }
             { name: 'AUTH_ENABLED', value: string(signInEnabled) }
+            // Semantic Kernel's spans report token usage (gen_ai.usage.*); prompts are not recorded
+            { name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS', value: 'true' }
             { name: 'AZURE_TENANT_ID', value: tenant().tenantId }
             { name: 'AZURE_API_AUDIENCE', value: apiAudience }
             { name: 'MATTER_GROUPS', value: matterGroups }

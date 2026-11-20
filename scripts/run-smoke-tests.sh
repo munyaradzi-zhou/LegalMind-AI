@@ -24,7 +24,8 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 APP_URL="${APP_URL:?APP_URL environment variable is required}"
 API_TOKEN="${API_TOKEN:-}"
-SMOKE_TEST_TIMEOUT="${SMOKE_TEST_TIMEOUT:-30}"
+# A chat answer takes 15-35 s (p95 about 25 s in the evaluation), more after a cold start
+SMOKE_TEST_TIMEOUT="${SMOKE_TEST_TIMEOUT:-120}"
 
 # Strip trailing slash
 APP_URL="${APP_URL%/}"
