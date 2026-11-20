@@ -18,7 +18,7 @@ It ingests contracts, letters and case files, retrieves the relevant passages wi
 |---|---|
 | **Multi-agent orchestration** | An orchestrator classifies intent and routes to four Semantic Kernel agents — document analysis, legal research, drafting and compliance — each with its own tools, prompts and few-shot examples. Cross-domain questions are handed off between agents (max depth 3). |
 | **Retrieval-augmented generation** | Azure AI Search hybrid retrieval: `text-embedding-3-large` vectors + BM25 fused with Reciprocal Rank Fusion, then semantic re-ranking. Every chunk carries a one-line header identifying its document (contextual retrieval). Answers cite their sources `[1]`, `[2]`, … LLM query rewriting is available but off by default — it added 1.3 s without improving retrieval. |
-| **Document ingestion** | Upload to Blob Storage → layout analysis (Document Intelligence or Content Understanding) → semantic or parent-child chunking → a contextual header per chunk → enrichment with entities and key phrases (AI Language) → batched embeddings → indexing. Re-ingesting a document replaces its earlier version. |
+| **Document ingestion** | Upload to Blob Storage → layout analysis with Document Intelligence (Markdown with tables, exact page numbers) → semantic or parent-child chunking → a contextual header per chunk → enrichment with entities and key phrases (AI Language) → batched embeddings → indexing. Re-ingesting a document replaces its earlier version. |
 | **Responsible AI** | Content Safety on every input and output, PII detection (Azure AI Language + Dutch BSN/IBAN/postcode patterns), an LLM groundedness check of each answer against the retrieved context that fails closed, and an audit trail in Cosmos DB. Every answer carries a `grounding` label (`documents`, `not_grounded`, `unverified`, `no_documents`) that the UI shows, and lists only the sources it actually used. |
 | **Production plumbing** | FastAPI with SSE streaming, Entra ID JWT auth, rate limiting, structured logs and OpenTelemetry → Application Insights, conversation memory in Cosmos DB. |
 | **MCP server** | The knowledge base as Model Context Protocol tools for other agents (Claude, Copilot, Foundry). |
@@ -75,7 +75,7 @@ All service-to-service calls use Microsoft Entra ID through one user-assigned ma
 | Azure OpenAI | Chat (`gpt-4.1-mini`), embeddings (`text-embedding-3-large`, 3072 dims) | Global Standard · Standard |
 | Azure AI Search | Hybrid vector + keyword index, semantic ranker | Basic, free semantic plan |
 | Azure AI Language | Entities, key phrases, PII | S0 |
-| Document Intelligence · Content Understanding | Layout and field extraction from PDF, DOCX and images | S0 |
+| Document Intelligence | Layout, tables and OCR for PDF, DOCX, scans and photos | S0 |
 | Azure AI Content Safety | Harm classification of inputs and outputs | S0 |
 | Cosmos DB | Sessions, long-term memory, audit log | Serverless |
 | Blob Storage | Original documents | Standard LRS |
@@ -168,7 +168,7 @@ LEGALMIND_API_URL=https://<your-api> legalmind-mcp --transport streamable-http
 Every push runs the same gates CI enforces — `make check` locally:
 
 - **Ruff** lint and formatting, **mypy `--strict`** over the whole package
-- **125 unit tests** (chunking, contextual headers, guardrails and grounding, PII, confidence scoring, context building, prompts, query rewriting, reflection, token budgets, index schema, orchestrator, MCP tools)
+- **144 unit tests** (chunking, contextual headers, guardrails and grounding, PII, confidence scoring, context building, prompts, query rewriting, reflection, token budgets, index schema, orchestrator, MCP tools)
 - **Bandit** and **pip-audit** security scans
 - **Bicep** compilation of every environment, **Docker** builds of both images, **shellcheck**
 
