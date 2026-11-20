@@ -21,7 +21,8 @@
 #   --seed              Upload sample_data/ through the API after deploying
 #   --skip-smoke        Skip smoke tests
 #
-# Requires: az (logged in), docker, git, curl.
+# Requires: az (logged in), docker, git, curl, openssl. Behind a TLS-inspecting proxy, set
+# CA_BUNDLE=<root CA PEM> so the image builds can reach PyPI.
 # =============================================================================
 set -euo pipefail
 
@@ -151,8 +152,11 @@ step "2/4 Images (tag ${TAG})"
 # ---------------------------------------------------------------------------
 if [[ "${SKIP_BUILD}" == false ]]; then
   az acr login -n "${REGISTRY}"
-  docker build -t "${LOGIN_SERVER}/legalmind-api:${TAG}" -f "${ROOT}/Dockerfile" "${ROOT}"
-  docker build -t "${LOGIN_SERVER}/legalmind-frontend:${TAG}" -f "${ROOT}/Dockerfile.frontend" "${ROOT}"
+  # Behind a TLS-inspecting proxy or antivirus, set CA_BUNDLE to a PEM file with its root CA
+  BUILD_ARGS=()
+  [[ -n "${CA_BUNDLE:-}" ]] && BUILD_ARGS=(--secret "id=ca_cert,src=${CA_BUNDLE}")
+  docker build "${BUILD_ARGS[@]}" -t "${LOGIN_SERVER}/legalmind-api:${TAG}" -f "${ROOT}/Dockerfile" "${ROOT}"
+  docker build "${BUILD_ARGS[@]}" -t "${LOGIN_SERVER}/legalmind-frontend:${TAG}" -f "${ROOT}/Dockerfile.frontend" "${ROOT}"
   docker push "${LOGIN_SERVER}/legalmind-api:${TAG}"
   docker push "${LOGIN_SERVER}/legalmind-frontend:${TAG}"
 else
