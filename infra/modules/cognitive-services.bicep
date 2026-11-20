@@ -15,9 +15,13 @@ param projectName string
 @description('Principal ID of the Container App managed identity to grant Cognitive Services User role.')
 param containerAppPrincipalId string = ''
 
+@description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
+param publicNetworkAccess string = 'Enabled'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -44,10 +48,10 @@ resource aiServices 'Microsoft.CognitiveServices/accounts@2024-04-01-preview' = 
   }
   properties: {
     customSubDomainName: aiServicesName
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     disableLocalAuth: true
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
     }
   }
 }
@@ -65,10 +69,10 @@ resource documentIntelligence 'Microsoft.CognitiveServices/accounts@2024-04-01-p
   }
   properties: {
     customSubDomainName: docIntelligenceName
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     disableLocalAuth: true
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
     }
   }
 }

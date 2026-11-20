@@ -15,6 +15,15 @@ param projectName string
 @description('Principal ID of the Container App managed identity to grant Cosmos DB data access.')
 param containerAppPrincipalId string = ''
 
+@description('Days a conversation (and long-term memory) is kept after its last message.')
+param chatRetentionDays int = 30
+
+@description('Days an audit event is kept (it holds no message text, see services/audit_logger.py).')
+param auditRetentionDays int = 365
+
+@description('Enabled, or Disabled when the account is only reachable through its private endpoint.')
+param publicNetworkAccess string = 'Enabled'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
@@ -59,7 +68,7 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-02-15-preview
     ]
     enableAutomaticFailover: environmentName == 'prod'
     enableMultipleWriteLocations: false
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     disableLocalAuth: true
     minimalTlsVersion: 'Tls12'
   }
@@ -92,7 +101,7 @@ resource sessionsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
         kind: 'Hash'
         version: 2
       }
-      defaultTtl: -1
+      defaultTtl: chatRetentionDays * 86400 // seconds; Cosmos deletes expired items itself
       indexingPolicy: {
         indexingMode: 'consistent'
         automatic: true
@@ -121,7 +130,7 @@ resource memoryContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/con
         kind: 'Hash'
         version: 2
       }
-      defaultTtl: -1
+      defaultTtl: chatRetentionDays * 86400
       indexingPolicy: {
         indexingMode: 'consistent'
         automatic: true
@@ -150,7 +159,7 @@ resource auditLogContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/c
         kind: 'Hash'
         version: 2
       }
-      defaultTtl: -1
+      defaultTtl: auditRetentionDays * 86400
     }
   }
 }

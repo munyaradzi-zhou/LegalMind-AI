@@ -129,8 +129,8 @@ def sessions(monkeypatch: pytest.MonkeyPatch) -> dict[str, dict[str, Any]]:
             store[session_id] = {"id": session_id, "user_id": user_id, "messages": []}
             return session_id
 
-        async def add_message(self, session_id: str, role: str, content: str, **_: Any) -> None:
-            store[session_id]["messages"].append({"role": role, "content": content})
+        async def add_message(self, session_id: str, role: str, content: str, **extra: Any) -> None:
+            store[session_id]["messages"].append({"role": role, "content": content, **extra})
 
         async def get_messages(self, session_id: str, *, limit: int = 20) -> list[dict[str, Any]]:
             return list(store[session_id]["messages"])

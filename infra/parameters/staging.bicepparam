@@ -2,6 +2,8 @@ using '../main.bicep'
 
 param environmentName = 'staging'
 param location = 'eastus2'
+// eastus2 had no AI Search capacity for new services (Nov 2026)
+param searchLocation = 'centralus'
 param projectName = 'legalmind'
 param apimPublisherEmail = readEnvironmentVariable('APIM_PUBLISHER_EMAIL', 'admin@example.com')
 
@@ -17,3 +19,6 @@ param deployerPrincipalType = readEnvironmentVariable('DEPLOYER_PRINCIPAL_TYPE',
 // Entra ID sign-in and matter groups, from scripts/setup_entra.sh (empty = sign-in off)
 param apiAudience = readEnvironmentVariable('AZURE_API_AUDIENCE', '')
 param matterGroups = readEnvironmentVariable('MATTER_GROUPS', '{}')
+
+// Private endpoints and no public access to the data services (NETWORK_ISOLATION=true|false)
+param networkIsolation = bool(readEnvironmentVariable('NETWORK_ISOLATION', 'false'))

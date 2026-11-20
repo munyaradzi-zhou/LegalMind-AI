@@ -22,6 +22,10 @@
 #   --seed              Upload sample_data/ through the API after deploying
 #   --skip-smoke        Skip smoke tests
 #
+# Environment: NETWORK_ISOLATION=true puts the data services behind private endpoints
+# (default on for prod), AZURE_API_AUDIENCE and MATTER_GROUPS turn on Entra ID sign-in
+# (from scripts/setup_entra.sh).
+#
 # Requires: az (logged in), git, curl, openssl, and docker unless --remote-build. Behind a
 # TLS-inspecting proxy, set
 # CA_BUNDLE=<root CA PEM> for local builds, or use --remote-build.
@@ -50,7 +54,7 @@ while [[ $# -gt 0 ]]; do
     --remote-build) REMOTE_BUILD=true; shift ;;
     --seed) SEED=true; shift ;;
     --skip-smoke) SKIP_SMOKE=true; shift ;;
-    -h | --help) sed -n '2,28p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,32p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -199,8 +203,10 @@ else
   fi
 fi
 
-# First deploy of the MCP server: create its key, then apply the template again to add the app
-if [[ "${SKIP_INFRA}" == false ]] && ! mcp_key_exists; then
+# First deploy of the MCP server: create its key, then apply the template again to add the app.
+# Not with network isolation: Key Vault then refuses this machine, so the key can't be created
+# from here (create it from inside the VNet, then deploy again).
+if [[ "${SKIP_INFRA}" == false && "${NETWORK_ISOLATION:-false}" != true ]] && ! mcp_key_exists; then
   create_mcp_key
   deploy_infra "${TAG}" "${TAG}"
 fi

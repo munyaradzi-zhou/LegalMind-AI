@@ -15,9 +15,13 @@ param projectName string
 @description('Principal ID of the Container App managed identity to grant Search Index Data Contributor role.')
 param containerAppPrincipalId string = ''
 
+@description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
+param publicNetworkAccess string = 'Enabled'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -48,7 +52,7 @@ resource searchService 'Microsoft.Search/searchServices@2024-03-01-preview' = {
     hostingMode: 'default'
     partitionCount: 1
     replicaCount: environmentName == 'prod' ? 2 : 1
-    publicNetworkAccess: 'enabled'
+    publicNetworkAccess: toLower(publicNetworkAccess)
     disableLocalAuth: true
     semanticSearch: environmentName == 'prod' ? 'standard' : 'free' // free plan: 1,000 semantic queries/month
   }

@@ -25,9 +25,13 @@ param deployerPrincipalType string = 'User'
 @description('Azure AD tenant ID for the Key Vault.')
 param tenantId string = subscription().tenantId
 
+@description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
+param publicNetworkAccess string = 'Enabled'
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -59,9 +63,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
     enablePurgeProtection: environmentName == 'prod' ? true : null
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
       bypass: 'AzureServices'
     }
   }

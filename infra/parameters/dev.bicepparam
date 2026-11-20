@@ -19,3 +19,6 @@ param deployerPrincipalType = readEnvironmentVariable('DEPLOYER_PRINCIPAL_TYPE',
 // Entra ID sign-in and matter groups, from scripts/setup_entra.sh (empty = sign-in off)
 param apiAudience = readEnvironmentVariable('AZURE_API_AUDIENCE', '')
 param matterGroups = readEnvironmentVariable('MATTER_GROUPS', '{}')
+
+// Private endpoints and no public access to the data services (NETWORK_ISOLATION=true|false)
+param networkIsolation = bool(readEnvironmentVariable('NETWORK_ISOLATION', 'false'))

@@ -73,6 +73,9 @@ param keyVaultUri string
 @description('Deploy the remote MCP server. Needs the secret mcp-api-key in Key Vault (scripts/deploy.sh creates it).')
 param mcpEnabled bool = false
 
+@description('Subnet for a VNet-integrated environment (networkIsolation); empty = no VNet. Set when the environment is created: an existing environment cannot be moved into a VNet.')
+param infrastructureSubnetId string = ''
+
 @description('Audiences the API accepts in Entra ID tokens ("<client id>,api://<client id>", from scripts/setup_entra.sh). Empty = sign-in off.')
 param apiAudience string = ''
 
@@ -86,6 +89,11 @@ param matterGroups string = '{}'
 // itself (app role Service), which gives it public law only.
 var signInEnabled = !empty(apiAudience)
 var apiScope = signInEnabled ? 'api://${split(apiAudience, ',')[0]}/.default' : ''
+
+// In a VNet the apps reach the data services through their private endpoints. The
+// environment then uses workload profiles (required for VNet integration on the
+// Consumption plan with a /27-or-larger subnet); the apps run on the Consumption profile.
+var inVnet = !empty(infrastructureSubnetId)
 
 var tags = {
   project: 'legalmind'
@@ -141,6 +149,8 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
       }
     }
     zoneRedundant: isProd
+    vnetConfiguration: inVnet ? { infrastructureSubnetId: infrastructureSubnetId, internal: false } : null
+    workloadProfiles: inVnet ? [{ name: 'Consumption', workloadProfileType: 'Consumption' }] : null
   }
 }
 
@@ -157,6 +167,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
   properties: {
     managedEnvironmentId: containerAppEnv.id
+    workloadProfileName: inVnet ? 'Consumption' : null
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
@@ -227,6 +238,7 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
   properties: {
     managedEnvironmentId: containerAppEnv.id
+    workloadProfileName: inVnet ? 'Consumption' : null
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
@@ -276,6 +288,7 @@ resource mcpApp 'Microsoft.App/containerApps@2024-03-01' = if (mcpEnabled && !ap
   }
   properties: {
     managedEnvironmentId: containerAppEnv.id
+    workloadProfileName: inVnet ? 'Consumption' : null
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {

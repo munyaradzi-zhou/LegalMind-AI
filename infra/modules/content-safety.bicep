@@ -16,6 +16,9 @@ param containerAppPrincipalId string = ''
 
 // ─── Variables ──────────────────────────────────────────────────────────────
 
+@description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
+param publicNetworkAccess string = 'Enabled'
+
 var tags = {
   project: 'legalmind'
   environment: environmentName
@@ -41,10 +44,10 @@ resource contentSafety 'Microsoft.CognitiveServices/accounts@2024-04-01-preview'
   }
   properties: {
     customSubDomainName: contentSafetyName
-    publicNetworkAccess: 'Enabled'
+    publicNetworkAccess: publicNetworkAccess
     disableLocalAuth: true  // Enforce managed identity auth only
     networkAcls: {
-      defaultAction: 'Allow'
+      defaultAction: publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
     }
   }
 }
