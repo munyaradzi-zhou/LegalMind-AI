@@ -16,7 +16,7 @@ class Citation(BaseModel):
     index: int = Field(..., description="Citation number [1], [2], etc.")
     document_id: str = Field(..., description="Source document identifier")
     document_title: str = Field(..., description="Source document title")
-    chunk_content: str = Field(..., description="The relevant text excerpt")
+    chunk_content: str = Field(..., description="The cited passage in full (clients shorten it for display)")
     page_number: int | None = Field(None, description="Page number in the source document")
     relevance_score: float = Field(..., description="Relevance score from search")
 

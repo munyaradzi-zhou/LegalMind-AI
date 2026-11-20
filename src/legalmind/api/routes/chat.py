@@ -211,7 +211,7 @@ async def chat(request: ChatRequest) -> ChatResponse | EventSourceResponse:
                 index=c.number,
                 document_id=c.document_id,
                 document_title=c.title,
-                chunk_content=strip_context_header(source.content)[:200] if source else "",
+                chunk_content=strip_context_header(source.content) if source else "",
                 page_number=c.page_number,
                 relevance_score=(source.reranker_score or source.search_score) if source else 0.0,
             )

@@ -135,6 +135,16 @@ def main() -> None:
         print(f"Baseline updated from {args.run}")  # noqa: T201
         return
 
+    if not args.baseline.exists():
+        markdown = (
+            "## Evaluation gate\n\n**No baseline yet**: nothing to compare with, so the gate passes. "
+            "To make this run the baseline: `python -m tests.evaluation.gate --run <this run> --update-baseline`.\n"
+        )
+        print(markdown)  # noqa: T201
+        if args.comment:
+            args.comment.write_text(markdown, encoding="utf-8")
+        return
+
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
     rows, failed = compare(current, baseline)
     markdown = report(rows, failed, current, baseline)
