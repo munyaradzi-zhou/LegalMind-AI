@@ -162,15 +162,15 @@ async def main() -> None:
     async with httpx.AsyncClient(timeout=240, verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)) as client:
         traffic = Traffic(args.api, client)
         for n in range(1, args.rounds + 1):
-            print(f"Round {n}/{args.rounds} ...", flush=True)  # noqa: T201
+            print(f"Round {n}/{args.rounds} ...", flush=True)
             await traffic.run_round()
 
     latencies = sorted(traffic.latencies)
-    print(f"\nDone in {time.perf_counter() - started:.0f}s, {len(latencies)} requests")  # noqa: T201
+    print(f"\nDone in {time.perf_counter() - started:.0f}s, {len(latencies)} requests")
     if latencies:
-        print(f"Latency p50 {latencies[len(latencies) // 2]:.1f}s, max {latencies[-1]:.1f}s")  # noqa: T201
+        print(f"Latency p50 {latencies[len(latencies) // 2]:.1f}s, max {latencies[-1]:.1f}s")
     for key, count in sorted(traffic.stats.items()):
-        print(f"  {key:<28} {count}")  # noqa: T201
+        print(f"  {key:<28} {count}")
 
 
 if __name__ == "__main__":

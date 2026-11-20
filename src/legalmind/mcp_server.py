@@ -8,31 +8,49 @@ Tools: search_legal_documents, ask_legal_question, ingest_document, list_agents.
 Run it:
     legalmind-mcp                                   # stdio (Claude Code, Claude Desktop, VS Code)
     legalmind-mcp --transport streamable-http       # HTTP on http://127.0.0.1:8001/mcp
+    legalmind-mcp --transport streamable-http --remote --host 0.0.0.0   # as deployed on Azure
+
+Remote mode is for other people's agents: every request needs the API key
+(``Authorization: Bearer <key>`` or ``X-API-Key``), sessions are stateless so the server
+can scale out, ``GET /health`` answers without a key for the platform's probes, and
+ingest_document is left out (it reads files from the caller's own disk).
 
 Configuration (environment):
-    LEGALMIND_API_URL    API base URL (default http://localhost:8000)
-    LEGALMIND_API_TOKEN  optional bearer token, when the API requires Entra ID sign-in
+    LEGALMIND_API_URL      API base URL (default http://localhost:8000)
+    LEGALMIND_API_TOKEN    optional bearer token, when the API requires Entra ID sign-in
+    LEGALMIND_MCP_API_KEY  the key remote clients must send (required with --remote)
 """
 
 from __future__ import annotations
 
 import argparse
+import hmac
 import os
 import ssl
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import httpx
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.responses import JSONResponse
 
-DocumentType = Literal["contract", "correspondence", "case_file", "policy"]
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from starlette.requests import Request
+    from starlette.types import ASGIApp, Receive, Scope, Send
+
+DocumentType = Literal["legislation", "court_filing", "contract", "correspondence", "case_file", "policy", "general"]
 
 INSTRUCTIONS = """\
-LegalMind answers Dutch legal questions from an indexed knowledge base of contracts,
-correspondence, case files and policies, with citations. Prefer ask_legal_question for
-questions that need an answer, search_legal_documents to find passages, and pass the
-returned session_id back to ask follow-up questions in the same conversation.
-Answers are not legal advice and should be checked by a professional."""
+LegalMind answers Dutch legal questions with citations, from an indexed knowledge base of
+Dutch legislation (Burgerlijk Wetboek Boek 7: tenancy, employment, insurance), court rulings,
+and a law firm's case files (contracts, correspondence, scanned letters and forms).
+Prefer ask_legal_question for questions that need an answer, search_legal_documents to find
+passages, and pass the returned session_id back to ask follow-up questions in the same
+conversation. Check `grounding` before relying on an answer. Answers are not legal advice
+and should be checked by a professional."""
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 CONTENT_TYPES = {
@@ -76,10 +94,6 @@ async def _request(method: str, path: str, **kwargs: Any) -> Any:
     return response.json()
 
 
-mcp = FastMCP("LegalMind", instructions=INSTRUCTIONS)
-
-
-@mcp.tool()
 async def search_legal_documents(
     query: str,
     document_type: DocumentType | None = None,
@@ -107,7 +121,6 @@ async def search_legal_documents(
     ]
 
 
-@mcp.tool()
 async def ask_legal_question(
     question: str,
     session_id: str | None = None,
@@ -150,7 +163,6 @@ async def ask_legal_question(
     }
 
 
-@mcp.tool()
 async def ingest_document(
     file_path: str,
     document_type: DocumentType = "contract",
@@ -178,7 +190,6 @@ async def ingest_document(
     return data
 
 
-@mcp.tool()
 async def list_agents() -> list[dict[str, Any]]:
     """List LegalMind's specialist agents, what each one does and which tools it uses."""
     data = await _request("GET", "/api/agents")
@@ -186,12 +197,84 @@ async def list_agents() -> list[dict[str, Any]]:
     return [{k: a.get(k) for k in ("name", "description", "tools")} for a in agents]
 
 
+def build_server(*, remote: bool = False) -> FastMCP:
+    """The MCP server with its tools; ``remote`` leaves out tools that need the caller's disk."""
+    server = FastMCP(
+        "LegalMind",
+        instructions=INSTRUCTIONS,
+        # Each request stands alone, so any replica can serve any client
+        stateless_http=remote,
+        # DNS-rebinding protection guards servers on a developer's machine and only lets
+        # "localhost" through as Host; behind Azure's ingress the Host is the public name
+        # (it answered 421 to every call). The remote server is protected by the API key.
+        transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False) if remote else None,
+    )
+    tools: list[Callable[..., Any]] = [search_legal_documents, ask_legal_question, list_agents]
+    if not remote:
+        tools.append(ingest_document)
+    for tool in tools:
+        server.add_tool(tool)
+    server.custom_route("/health", methods=["GET"])(_health)
+    return server
+
+
+async def _health(_: Request) -> JSONResponse:
+    """Liveness for the platform's probes; needs no API key."""
+    return JSONResponse({"status": "ok"})
+
+
+mcp = build_server()
+
+
+class RequireApiKey:
+    """ASGI middleware: every request except ``GET /health`` must carry the API key."""
+
+    def __init__(self, app: ASGIApp, api_key: str) -> None:
+        if not api_key:
+            raise ValueError("An empty API key would let everyone in")
+        self.app = app
+        self._key = api_key.encode()
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope["path"] == "/health":
+            await self.app(scope, receive, send)
+            return
+        headers = dict(scope["headers"])
+        bearer = headers.get(b"authorization", b"")
+        offered = bearer[7:] if bearer[:7].lower() == b"bearer " else headers.get(b"x-api-key", b"")
+        if hmac.compare_digest(offered, self._key):
+            await self.app(scope, receive, send)
+            return
+        response = JSONResponse(
+            {"error": "unauthorized", "detail": "Send the API key as 'Authorization: Bearer <key>' or 'X-API-Key'."},
+            status_code=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        await response(scope, receive, send)
+
+
+def remote_app(api_key: str) -> ASGIApp:
+    """The streamable-HTTP app for other people's agents, behind the API key."""
+    return RequireApiKey(build_server(remote=True).streamable_http_app(), api_key)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="LegalMind MCP server")
     parser.add_argument("--transport", choices=["stdio", "streamable-http"], default="stdio")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8001)
+    parser.add_argument("--remote", action="store_true", help="API key required, stateless, no ingest tool")
     args = parser.parse_args()
+    if args.remote:
+        if args.transport != "streamable-http":
+            parser.error("--remote needs --transport streamable-http")
+        api_key = os.getenv("LEGALMIND_MCP_API_KEY", "")
+        if not api_key:
+            parser.error("--remote needs LEGALMIND_MCP_API_KEY")
+        import uvicorn
+
+        uvicorn.run(remote_app(api_key), host=args.host, port=args.port, proxy_headers=True, forwarded_allow_ips="*")
+        return
     if args.transport == "streamable-http":
         mcp.settings.host = args.host
         mcp.settings.port = args.port

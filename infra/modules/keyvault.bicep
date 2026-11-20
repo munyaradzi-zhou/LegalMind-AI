@@ -15,6 +15,13 @@ param projectName string
 @description('Principal ID of the Container App managed identity to grant Key Vault access.')
 param containerAppPrincipalId string = ''
 
+@description('Object ID of whoever runs the deployment (a person or the CD service principal); it may create and rotate secrets. Empty = no grant.')
+param deployerPrincipalId string = ''
+
+@description('Principal type of the deployer.')
+@allowed(['User', 'ServicePrincipal'])
+param deployerPrincipalType string = 'User'
+
 @description('Azure AD tenant ID for the Key Vault.')
 param tenantId string = subscription().tenantId
 
@@ -31,8 +38,9 @@ var tags = {
 var suffix = take(uniqueString(resourceGroup().id), 5)
 var keyVaultName = take('kv-${projectName}-${environmentName}-${suffix}', 24)
 
-// Built-in role: Key Vault Secrets User
+// Built-in roles: Key Vault Secrets User (read) and Key Vault Secrets Officer (manage)
 var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+var keyVaultSecretsOfficerRoleId = 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
 
 // ---------------------------------------------------------------------------
 // Key Vault
@@ -69,6 +77,17 @@ resource keyVaultSecretsUserAssignment 'Microsoft.Authorization/roleAssignments@
     principalId: containerAppPrincipalId
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
     principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: the deployer creates the MCP API key (scripts/deploy.sh); it never passes through Bicep
+resource deployerSecretsOfficerAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deployerPrincipalId)) {
+  name: guid(keyVault.id, deployerPrincipalId, keyVaultSecretsOfficerRoleId)
+  scope: keyVault
+  properties: {
+    principalId: deployerPrincipalId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsOfficerRoleId)
+    principalType: deployerPrincipalType
   }
 }
 

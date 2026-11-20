@@ -40,6 +40,16 @@ param apiImageTag string = ''
 @description('Frontend image tag in the registry. Empty = placeholder image (first deploy).')
 param frontendImageTag string = ''
 
+@description('Deploy the remote MCP server (needs the Key Vault secret mcp-api-key; scripts/deploy.sh handles it).')
+param mcpEnabled bool = false
+
+@description('Object ID of whoever runs the deployment; granted Key Vault Secrets Officer to manage the MCP key.')
+param deployerPrincipalId string = ''
+
+@description('User or ServicePrincipal.')
+@allowed(['User', 'ServicePrincipal'])
+param deployerPrincipalType string = 'User'
+
 // =============================================================================
 // Identity used by both Container Apps (created first so roles can be granted up front)
 // =============================================================================
@@ -146,6 +156,8 @@ module keyVault 'modules/keyvault.bicep' = {
     environmentName: environmentName
     projectName: projectName
     containerAppPrincipalId: appPrincipalId
+    deployerPrincipalId: deployerPrincipalId
+    deployerPrincipalType: deployerPrincipalType
   }
 }
 
@@ -187,6 +199,7 @@ module containerApps 'modules/container-apps.bicep' = {
     cosmosEndpoint: cosmosDb.outputs.cosmosEndpoint
     blobEndpoint: storage.outputs.blobEndpoint
     keyVaultUri: keyVault.outputs.keyVaultUri
+    mcpEnabled: mcpEnabled
   }
 }
 
@@ -227,6 +240,9 @@ output apiUrl string = containerApps.outputs.apiUrl
 
 @description('Frontend URL.')
 output frontendUrl string = containerApps.outputs.frontendUrl
+
+@description('MCP endpoint for other agents (empty until the MCP server is deployed).')
+output mcpUrl string = containerApps.outputs.mcpUrl
 
 @description('API Management gateway URL.')
 output apimGatewayUrl string = apiManagement.outputs.apimGatewayUrl

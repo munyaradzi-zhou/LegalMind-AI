@@ -1,41 +1,550 @@
 {
-  "description": "Retrieval golden set for the sample corpus in sample_data/. Each query has one source document and a short passage that the correct chunk must contain. A query counts as a hit at k when one of the top-k chunks contains the passage (case- and whitespace-insensitive).",
-  "version": "2.0",
+  "description": "Retrieval golden set: R01-R35 on the three sample files, R36-R68 on the evaluation corpus (legislation, case law and case files as PDF, Word, scans and photos; see corpus/manifest.json). Each query has one source document and a short passage that the correct chunk must contain.",
+  "version": "3.0",
   "queries": [
-    {"id": "R01", "query": "Wat is het maximale bedrag dat per geschil wordt vergoed?", "source": "sample_insurance_policy_nl.txt", "passage": "€50.000 per geschil", "category": "coverage", "language": "nl"},
-    {"id": "R02", "query": "Hoe hoog is het eigen risico?", "source": "sample_insurance_policy_nl.txt", "passage": "eigen risico bedraagt €250", "category": "coverage", "language": "nl"},
-    {"id": "R03", "query": "Welke geschillen zijn uitgesloten van dekking?", "source": "sample_insurance_policy_nl.txt", "passage": "Strafzaken", "category": "exclusions", "language": "nl"},
-    {"id": "R04", "query": "Binnen hoeveel dagen moet ik een geschil melden bij de verzekeraar?", "source": "sample_insurance_policy_nl.txt", "passage": "uiterlijk binnen 30 dagen na het ontstaan", "category": "obligations", "language": "nl"},
-    {"id": "R05", "query": "Wat kost de verzekering per jaar?", "source": "sample_insurance_policy_nl.txt", "passage": "€180,00 inclusief assurantiebelasting", "category": "premium", "language": "nl"},
-    {"id": "R06", "query": "Wat gebeurt er als ik de premie te laat betaal?", "source": "sample_insurance_policy_nl.txt", "passage": "dekking opgeschort na een schriftelijke aanmaning", "category": "premium", "language": "nl"},
-    {"id": "R07", "query": "Wordt de polis automatisch verlengd?", "source": "sample_insurance_policy_nl.txt", "passage": "stilzwijgend verlengd", "category": "term", "language": "nl"},
-    {"id": "R08", "query": "Geldt er een wachttijd voor een conflict met mijn verhuurder?", "source": "sample_insurance_policy_nl.txt", "passage": "wachttijd van 3 maanden", "category": "waiting_period", "language": "nl"},
-    {"id": "R09", "query": "Mag ik zelf een advocaat kiezen?", "source": "sample_insurance_policy_nl.txt", "passage": "recht een eigen advocaat te kiezen", "category": "rights", "language": "nl"},
-    {"id": "R10", "query": "Waar kan ik terecht als mijn klacht niet naar tevredenheid wordt opgelost?", "source": "sample_insurance_policy_nl.txt", "passage": "Kifid", "category": "complaints", "language": "nl"},
-    {"id": "R11", "query": "Hoe kan ik de verzekering opzeggen?", "source": "sample_insurance_policy_nl.txt", "passage": "opzegtermijn van twee maanden", "category": "termination", "language": "nl"},
-    {"id": "R12", "query": "Welk recht is van toepassing op de overeenkomst?", "source": "sample_insurance_policy_nl.txt", "passage": "Nederlands recht van toepassing", "category": "governing_law", "language": "nl"},
-    {"id": "R13", "query": "Ben ik verzekerd bij een ruzie met de buren over de erfgrens?", "source": "sample_insurance_policy_nl.txt", "passage": "Burenrecht", "category": "coverage", "language": "nl"},
-    {"id": "R14", "query": "Welke gegevens moet ik aanleveren bij een schademelding?", "source": "sample_insurance_policy_nl.txt", "passage": "contactgegevens van de betrokken partijen", "category": "claims", "language": "nl"},
-    {"id": "R15", "query": "Wat wordt bedoeld met wachttijd?", "source": "sample_insurance_policy_nl.txt", "passage": "de periode na ingangsdatum", "category": "definitions", "language": "nl"},
-    {"id": "R16", "query": "What is the deductible per dispute?", "source": "sample_insurance_policy_nl.txt", "passage": "eigen risico bedraagt €250", "category": "coverage", "language": "en"},
-    {"id": "R17", "query": "Are tax disputes covered by the policy?", "source": "sample_insurance_policy_nl.txt", "passage": "Fiscale geschillen", "category": "exclusions", "language": "en"},
-    {"id": "R18", "query": "How can I cancel my legal expenses insurance?", "source": "sample_insurance_policy_nl.txt", "passage": "opzegtermijn van twee maanden", "category": "termination", "language": "en"},
-    {"id": "R19", "query": "Wat is het zaaknummer van het arbeidsongeval van De Vries?", "source": "sample_case_summary_nl.txt", "passage": "VRB/2024/ZK-9012", "category": "case_facts", "language": "nl"},
-    {"id": "R20", "query": "Welke verwondingen heeft de heer De Vries opgelopen?", "source": "sample_case_summary_nl.txt", "passage": "gebroken linkerpols", "category": "case_facts", "language": "nl"},
-    {"id": "R21", "query": "Welke overtreding heeft de Arbeidsinspectie vastgesteld?", "source": "sample_case_summary_nl.txt", "passage": "ontbreken van adequate valbeveiliging", "category": "case_facts", "language": "nl"},
-    {"id": "R22", "query": "Op welk wetsartikel berust de zorgplicht van de werkgever?", "source": "sample_case_summary_nl.txt", "passage": "art. 7:658 BW", "category": "legal_basis", "language": "nl"},
-    {"id": "R23", "query": "Welke rechterlijke uitspraken zijn vergelijkbaar met deze zaak?", "source": "sample_case_summary_nl.txt", "passage": "ECLI:NL:HR:2011:BR5215", "category": "case_law", "language": "nl"},
-    {"id": "R24", "query": "Hoe hoog wordt de totale schade in de zaak De Vries geschat?", "source": "sample_case_summary_nl.txt", "passage": "€13.050 - €16.050", "category": "damages", "language": "nl"},
-    {"id": "R25", "query": "Wat is de vervolgstap als de werkgever de aansprakelijkheid afwijst?", "source": "sample_case_summary_nl.txt", "passage": "dagvaarding overwegen", "category": "strategy", "language": "nl"},
-    {"id": "R26", "query": "Wat is de deadline voor de reactie van de werkgever?", "source": "sample_case_summary_nl.txt", "passage": "deadline: 5 april 2024", "category": "deadlines", "language": "nl"},
-    {"id": "R27", "query": "How much pain and suffering compensation is expected?", "source": "sample_case_summary_nl.txt", "passage": "€5.000-€8.000", "category": "damages", "language": "en"},
-    {"id": "R28", "query": "Had de werkgever een actuele risico-inventarisatie?", "source": "sample_case_summary_nl.txt", "passage": "niet over een actuele Risico-Inventarisatie", "category": "case_facts", "language": "nl"},
-    {"id": "R29", "query": "Wat vraagt de aansprakelijkheidsbrief aan de werkgever?", "source": "sample_legal_letter_nl.txt", "passage": "Aansprakelijkheid te erkennen", "category": "letter", "language": "nl"},
-    {"id": "R30", "query": "Binnen welke termijn moet de werkgever schriftelijk reageren op de aansprakelijkstelling?", "source": "sample_legal_letter_nl.txt", "passage": "Binnen 14 dagen na dagtekening", "category": "deadlines", "language": "nl"},
-    {"id": "R31", "query": "Welke bijlagen zijn met de brief meegestuurd?", "source": "sample_legal_letter_nl.txt", "passage": "Loonstroken januari t/m maart 2024", "category": "letter", "language": "nl"},
-    {"id": "R32", "query": "Wat is ons kenmerk in de aansprakelijkheidsstelling?", "source": "sample_legal_letter_nl.txt", "passage": "VRB/2024/AO-5678", "category": "letter", "language": "nl"},
-    {"id": "R33", "query": "Welke veiligheidsmiddelen ontbraken volgens de aansprakelijkstelling?", "source": "sample_legal_letter_nl.txt", "passage": "geen veiligheidsharnas", "category": "case_facts", "language": "nl"},
-    {"id": "R34", "query": "Wat is de voorlopige schade exclusief smartengeld?", "source": "sample_legal_letter_nl.txt", "passage": "€8.050", "category": "damages", "language": "nl"},
-    {"id": "R35", "query": "Which safety equipment was missing according to the liability letter?", "source": "sample_legal_letter_nl.txt", "passage": "geen veiligheidsharnas", "category": "case_facts", "language": "en"}
+    {
+      "id": "R01",
+      "query": "Wat is het maximale bedrag dat per geschil wordt vergoed?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "€50.000 per geschil",
+      "category": "coverage",
+      "language": "nl"
+    },
+    {
+      "id": "R02",
+      "query": "Hoe hoog is het eigen risico?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "eigen risico bedraagt €250",
+      "category": "coverage",
+      "language": "nl"
+    },
+    {
+      "id": "R03",
+      "query": "Welke geschillen zijn uitgesloten van dekking?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "Strafzaken",
+      "category": "exclusions",
+      "language": "nl"
+    },
+    {
+      "id": "R04",
+      "query": "Binnen hoeveel dagen moet ik een geschil melden bij de verzekeraar?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "uiterlijk binnen 30 dagen na het ontstaan",
+      "category": "obligations",
+      "language": "nl"
+    },
+    {
+      "id": "R05",
+      "query": "Wat kost de verzekering per jaar?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "€180,00 inclusief assurantiebelasting",
+      "category": "premium",
+      "language": "nl"
+    },
+    {
+      "id": "R06",
+      "query": "Wat gebeurt er als ik de premie te laat betaal?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "dekking opgeschort na een schriftelijke aanmaning",
+      "category": "premium",
+      "language": "nl"
+    },
+    {
+      "id": "R07",
+      "query": "Wordt de polis automatisch verlengd?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "stilzwijgend verlengd",
+      "category": "term",
+      "language": "nl"
+    },
+    {
+      "id": "R08",
+      "query": "Geldt er een wachttijd voor een conflict met mijn verhuurder?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "wachttijd van 3 maanden",
+      "category": "waiting_period",
+      "language": "nl"
+    },
+    {
+      "id": "R09",
+      "query": "Mag ik zelf een advocaat kiezen?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "recht een eigen advocaat te kiezen",
+      "category": "rights",
+      "language": "nl"
+    },
+    {
+      "id": "R10",
+      "query": "Waar kan ik terecht als mijn klacht niet naar tevredenheid wordt opgelost?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "Kifid",
+      "category": "complaints",
+      "language": "nl"
+    },
+    {
+      "id": "R11",
+      "query": "Hoe kan ik de verzekering opzeggen?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "opzegtermijn van twee maanden",
+      "category": "termination",
+      "language": "nl"
+    },
+    {
+      "id": "R12",
+      "query": "Welk recht is van toepassing op de overeenkomst?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "Nederlands recht van toepassing",
+      "category": "governing_law",
+      "language": "nl"
+    },
+    {
+      "id": "R13",
+      "query": "Ben ik verzekerd bij een ruzie met de buren over de erfgrens?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "Burenrecht",
+      "category": "coverage",
+      "language": "nl"
+    },
+    {
+      "id": "R14",
+      "query": "Welke gegevens moet ik aanleveren bij een schademelding?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "contactgegevens van de betrokken partijen",
+      "category": "claims",
+      "language": "nl"
+    },
+    {
+      "id": "R15",
+      "query": "Wat wordt bedoeld met wachttijd?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "de periode na ingangsdatum",
+      "category": "definitions",
+      "language": "nl"
+    },
+    {
+      "id": "R16",
+      "query": "What is the deductible per dispute?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "eigen risico bedraagt €250",
+      "category": "coverage",
+      "language": "en"
+    },
+    {
+      "id": "R17",
+      "query": "Are tax disputes covered by the policy?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "Fiscale geschillen",
+      "category": "exclusions",
+      "language": "en"
+    },
+    {
+      "id": "R18",
+      "query": "How can I cancel my legal expenses insurance?",
+      "source": "sample_insurance_policy_nl.txt",
+      "passage": "opzegtermijn van twee maanden",
+      "category": "termination",
+      "language": "en"
+    },
+    {
+      "id": "R19",
+      "query": "Wat is het zaaknummer van het arbeidsongeval van De Vries?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "VRB/2024/ZK-9012",
+      "category": "case_facts",
+      "language": "nl"
+    },
+    {
+      "id": "R20",
+      "query": "Welke verwondingen heeft de heer De Vries opgelopen?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "gebroken linkerpols",
+      "category": "case_facts",
+      "language": "nl"
+    },
+    {
+      "id": "R21",
+      "query": "Welke overtreding heeft de Arbeidsinspectie vastgesteld?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "ontbreken van adequate valbeveiliging",
+      "category": "case_facts",
+      "language": "nl"
+    },
+    {
+      "id": "R22",
+      "query": "Op welk wetsartikel berust de zorgplicht van de werkgever?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "art. 7:658 BW",
+      "category": "legal_basis",
+      "language": "nl"
+    },
+    {
+      "id": "R23",
+      "query": "Welke rechterlijke uitspraken zijn vergelijkbaar met deze zaak?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "ECLI:NL:HR:2011:BR5215",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R24",
+      "query": "Hoe hoog wordt de totale schade in de zaak De Vries geschat?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "€13.050 - €16.050",
+      "category": "damages",
+      "language": "nl"
+    },
+    {
+      "id": "R25",
+      "query": "Wat is de vervolgstap als de werkgever de aansprakelijkheid afwijst?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "dagvaarding overwegen",
+      "category": "strategy",
+      "language": "nl"
+    },
+    {
+      "id": "R26",
+      "query": "Wat is de deadline voor de reactie van de werkgever?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "deadline: 5 april 2024",
+      "category": "deadlines",
+      "language": "nl"
+    },
+    {
+      "id": "R27",
+      "query": "How much pain and suffering compensation is expected?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "€5.000-€8.000",
+      "category": "damages",
+      "language": "en"
+    },
+    {
+      "id": "R28",
+      "query": "Had de werkgever een actuele risico-inventarisatie?",
+      "source": "sample_case_summary_nl.txt",
+      "passage": "niet over een actuele Risico-Inventarisatie",
+      "category": "case_facts",
+      "language": "nl"
+    },
+    {
+      "id": "R29",
+      "query": "Wat vraagt de aansprakelijkheidsbrief aan de werkgever?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "Aansprakelijkheid te erkennen",
+      "category": "letter",
+      "language": "nl"
+    },
+    {
+      "id": "R30",
+      "query": "Binnen welke termijn moet de werkgever schriftelijk reageren op de aansprakelijkstelling?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "Binnen 14 dagen na dagtekening",
+      "category": "deadlines",
+      "language": "nl"
+    },
+    {
+      "id": "R31",
+      "query": "Welke bijlagen zijn met de brief meegestuurd?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "Loonstroken januari t/m maart 2024",
+      "category": "letter",
+      "language": "nl"
+    },
+    {
+      "id": "R32",
+      "query": "Wat is ons kenmerk in de aansprakelijkheidsstelling?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "VRB/2024/AO-5678",
+      "category": "letter",
+      "language": "nl"
+    },
+    {
+      "id": "R33",
+      "query": "Welke veiligheidsmiddelen ontbraken volgens de aansprakelijkstelling?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "geen veiligheidsharnas",
+      "category": "case_facts",
+      "language": "nl"
+    },
+    {
+      "id": "R34",
+      "query": "Wat is de voorlopige schade exclusief smartengeld?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "€8.050",
+      "category": "damages",
+      "language": "nl"
+    },
+    {
+      "id": "R35",
+      "query": "Which safety equipment was missing according to the liability letter?",
+      "source": "sample_legal_letter_nl.txt",
+      "passage": "geen veiligheidsharnas",
+      "category": "case_facts",
+      "language": "en"
+    },
+    {
+      "id": "R36",
+      "query": "Hoe hoog is de kale huur van de woning aan de Lindenlaan 14-2?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "passage": "€ 1.185,00 per maand",
+      "category": "rent",
+      "language": "nl"
+    },
+    {
+      "id": "R37",
+      "query": "Waaruit bestaat het voorschot op de servicekosten van mevrouw De Wit?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "passage": "Totaal voorschot servicekosten",
+      "category": "table_docx",
+      "language": "nl"
+    },
+    {
+      "id": "R38",
+      "query": "Hoeveel waarborgsom betaalt de huurder van Lindenlaan 14-2?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "passage": "waarborgsom van € 2.370,00",
+      "category": "rent",
+      "language": "nl"
+    },
+    {
+      "id": "R39",
+      "query": "Welke lekkage meldde de huurder in januari 2026?",
+      "source": "Brief huurder over gebreken badkamer en slaapkamer",
+      "passage": "loopt er water langs de lamp",
+      "category": "scan",
+      "language": "nl"
+    },
+    {
+      "id": "R40",
+      "query": "How much rent is Ms De Wit withholding each month until the defects are fixed?",
+      "source": "Brief huurder over gebreken badkamer en slaapkamer",
+      "passage": "€ 350,00 per maand van de huurprijs inhouden",
+      "category": "scan",
+      "language": "en"
+    },
+    {
+      "id": "R41",
+      "query": "Hoe groot is de huurachterstand van mevrouw De Wit volgens de verhuurder?",
+      "source": "Overzicht huurachterstand De Wit",
+      "passage": "Wij verzoeken u de achterstand van € 1.950,00",
+      "category": "photo",
+      "language": "nl"
+    },
+    {
+      "id": "R42",
+      "query": "Wat wordt de nieuwe kale huur per 1 juli 2026?",
+      "source": "Voorstel huurverhoging per 1 juli 2026 Lindenlaan 14-2",
+      "passage": "€ 1.233,59",
+      "category": "rent",
+      "language": "nl"
+    },
+    {
+      "id": "R43",
+      "query": "Welke proeftijd geldt voor Eva Kramer?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "passage": "Er geldt een proeftijd van één maand",
+      "category": "employment",
+      "language": "nl"
+    },
+    {
+      "id": "R44",
+      "query": "In welke salarisschaal is Eva Kramer ingedeeld?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "passage": "schaal 6, trede 4",
+      "category": "table_pdf",
+      "language": "nl"
+    },
+    {
+      "id": "R45",
+      "query": "Hoe motiveert Noordlicht Logistiek het concurrentiebeding?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "passage": "toegang tot de volledige klantenportefeuille",
+      "category": "employment",
+      "language": "nl"
+    },
+    {
+      "id": "R46",
+      "query": "Why was Eva Kramer dismissed with immediate effect?",
+      "source": "Brief ontslag op staande voet Eva Kramer",
+      "passage": "zonder toestemming en zonder bericht niet op uw werk verschenen",
+      "category": "scan",
+      "language": "en"
+    },
+    {
+      "id": "R47",
+      "query": "Welk brutosalaris is over 1 tot en met 14 maart 2026 berekend voor Eva Kramer?",
+      "source": "Loonoverzicht Eva Kramer januari tot en met maart 2026",
+      "passage": "€ 1.558,06",
+      "category": "photo",
+      "language": "nl"
+    },
+    {
+      "id": "R48",
+      "query": "Welke vergoeding biedt de werkgever in de concept-vaststellingsovereenkomst?",
+      "source": "Concept vaststellingsovereenkomst Noordlicht Logistiek en Eva Kramer",
+      "passage": "vergoeding van € 4.000,00 bruto",
+      "category": "docx",
+      "language": "nl"
+    },
+    {
+      "id": "R49",
+      "query": "Binnen welke termijn kan Eva Kramer de vaststellingsovereenkomst ontbinden?",
+      "source": "Concept vaststellingsovereenkomst Noordlicht Logistiek en Eva Kramer",
+      "passage": "binnen veertien dagen na de dag waarop zij is gesloten",
+      "category": "docx",
+      "language": "nl"
+    },
+    {
+      "id": "R50",
+      "query": "Vanaf welke windsnelheid is stormschade gedekt op de polis van de heer Visser?",
+      "source": "Polisblad woonhuisverzekering Visser",
+      "passage": "ten minste 14 meter per seconde",
+      "category": "docx",
+      "language": "nl"
+    },
+    {
+      "id": "R51",
+      "query": "Wat is het verzekerde bedrag voor de schuur en garage van de heer Visser?",
+      "source": "Polisblad woonhuisverzekering Visser",
+      "passage": "Bijgebouwen (schuur, garage)",
+      "category": "table_docx",
+      "language": "nl"
+    },
+    {
+      "id": "R52",
+      "query": "Wat is er met het dak van het woonhuis gebeurd tijdens de storm van 3 februari 2026?",
+      "source": "Schadeaangifteformulier storm Dijkstraat 88 Arnhem",
+      "passage": "ongeveer twintig dakpannen",
+      "category": "scan",
+      "language": "nl"
+    },
+    {
+      "id": "R53",
+      "query": "Hoeveel kost het herstel van het dak van de schuur volgens de schademelding?",
+      "source": "Schadeaangifteformulier storm Dijkstraat 88 Arnhem",
+      "passage": "Herstel dak schuur",
+      "category": "scan_table",
+      "language": "nl"
+    },
+    {
+      "id": "R54",
+      "query": "Welke windkracht is volgens de verzekeraar gemeten op 3 februari 2026?",
+      "source": "Afwijzing schadeclaim storm Visser door Zekerheid Schadeverzekeringen",
+      "passage": "12 meter per seconde, dat is windkracht 6",
+      "category": "insurance",
+      "language": "nl"
+    },
+    {
+      "id": "R55",
+      "query": "What did the loss adjuster find about the roof of the Visser house?",
+      "source": "Afwijzing schadeclaim storm Visser door Zekerheid Schadeverzekeringen",
+      "passage": "panlatten van het dak van het woonhuis grotendeels verrot",
+      "category": "insurance",
+      "language": "en"
+    },
+    {
+      "id": "R56",
+      "query": "Wanneer kan een huurder huurvermindering vorderen wegens een gebrek?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 4 Huur, afdelingen 1 tot en met 5 (huur en huur van woonruimte)",
+      "passage": "evenredige vermindering van de huurprijs vorderen",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R57",
+      "query": "Welke opzegtermijn geldt wettelijk bij opzegging door de huurder van woonruimte?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 4 Huur, afdelingen 1 tot en met 5 (huur en huur van woonruimte)",
+      "passage": "doch niet korter dan een maand en niet langer dan drie maanden",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R58",
+      "query": "Wanneer mag een concurrentiebeding in een tijdelijk arbeidscontract?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "passage": "schriftelijke motivering van de werkgever blijkt",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R59",
+      "query": "Hoe lang mag de proeftijd zijn bij een contract voor bepaalde tijd van een jaar?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "passage": "een maand, indien de overeenkomst is aangegaan voor langer dan zes maanden",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R60",
+      "query": "Within what period can an employee dissolve a termination agreement?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "passage": "binnen veertien dagen na de datum waarop de overeenkomst tot stand is gekomen",
+      "category": "legislation",
+      "language": "en"
+    },
+    {
+      "id": "R61",
+      "query": "Wat moet een verzekeringnemer melden voordat de verzekering wordt gesloten?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 17 Verzekering, afdeling 1 en 2 (algemeen en schadeverzekering)",
+      "passage": "alle feiten mede te delen die hij kent of behoort te kennen",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R62",
+      "query": "Wanneer is de werkgever niet aansprakelijk voor schade van een werknemer?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "passage": "opzet of bewuste roekeloosheid van de werknemer",
+      "category": "legislation",
+      "language": "nl"
+    },
+    {
+      "id": "R63",
+      "query": "Welke huurachterstand moest de huurder in de zaak van Casade betalen?",
+      "source": "Uitspraak Rechtbank Zeeland-West-Brabant 2025-01-15 ECLI:NL:RBZWB:2025:203",
+      "passage": "€ 1.957,62",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R64",
+      "query": "Welke transitievergoeding kende de Rotterdamse kantonrechter toe na het onterechte ontslag op staande voet?",
+      "source": "Uitspraak Rechtbank Rotterdam 2025-02-13 ECLI:NL:RBROT:2025:1815",
+      "passage": "€ 450,18 bruto aan transitievergoeding",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R65",
+      "query": "Welke gefixeerde schadevergoeding kende Rechtbank Midden-Nederland toe?",
+      "source": "Uitspraak Rechtbank Midden-Nederland 2025-02-10 ECLI:NL:RBMNE:2025:303",
+      "passage": "€ 3.064,52 bruto aan gefixeerde schadevergoeding",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R66",
+      "query": "Hoeveel achterstallig salaris per maand moest de werkgever betalen in de zaak over betalingsonmacht?",
+      "source": "Uitspraak Rechtbank Zeeland-West-Brabant 2025-01-22 ECLI:NL:RBZWB:2025:321",
+      "passage": "€ 6.000,00 bruto per maand",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R67",
+      "query": "Welke rechtszaak ging over de Algemene Huurvoorwaarden woonruimte van maart 2024?",
+      "source": "Uitspraak Rechtbank Noord-Holland 2025-01-15 ECLI:NL:RBNHO:2025:422",
+      "passage": "Toetsing van de Algemene Huurvoorwaarden",
+      "category": "case_law",
+      "language": "nl"
+    },
+    {
+      "id": "R68",
+      "query": "Which ruling dealt with a passenger damage insurance claim after a death?",
+      "source": "Uitspraak Rechtbank Rotterdam 2023-03-01 ECLI:NL:RBROT:2023:1772",
+      "passage": "overlijdensschade",
+      "category": "case_law",
+      "language": "en"
+    }
   ]
 }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from legalmind.ingestion.chunking import fixed_size_chunk, parent_child_chunk, semantic_chunk
+from legalmind.ingestion.chunking import _split_into_sections, fixed_size_chunk, parent_child_chunk, semantic_chunk
 
 DOC_ID = "test-doc-001"
 
@@ -71,6 +71,23 @@ class TestSemanticChunk:
         """Empty text should return empty list."""
         chunks = semantic_chunk("", DOC_ID)
         assert chunks == []
+
+    def test_bare_heading_joins_its_body(self):
+        """A heading-only section must not become a chunk of its own."""
+        body = "Van dekking zijn uitgesloten: geschillen die reeds bestonden vóór de ingangsdatum. " * 4
+        text = f"ARTIKEL 3 - UITSLUITINGEN\n\n{body}\n\nARTIKEL 4 - EIGEN RISICO\n\n{body}"
+        chunks = semantic_chunk(text, DOC_ID)
+        assert [c.section_title for c in chunks] == ["ARTIKEL 3 - UITSLUITINGEN", "ARTIKEL 4 - EIGEN RISICO"]
+        assert all(len(c.content) > 200 for c in chunks)
+
+    def test_numbered_clause_is_not_a_heading(self):
+        """'2.2 De maximale dekking bedraagt ...' is a clause, '3.2 Verplichtingen' a heading."""
+        text = (
+            "ARTIKEL 2 - DEKKING\n2.1 Verzekerd\n"
+            "2.2 De maximale dekking bedraagt €50.000 per geschil\n3.2 Verplichtingen"
+        )
+        sections = [title for title, _, _ in _split_into_sections(text)]
+        assert sections == ["ARTIKEL 2 - DEKKING", "2.1 Verzekerd", "3.2 Verplichtingen"]
 
 
 class TestParentChildChunk:

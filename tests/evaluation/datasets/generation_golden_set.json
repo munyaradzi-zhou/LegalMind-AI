@@ -1,52 +1,873 @@
 {
   "description": "End-to-end answer quality on the sample corpus. Each answerable question lists facts the answer must contain; a fact is a list of acceptable variants (any one counts). Unanswerable questions check that the assistant says the documents don't contain the answer instead of inventing one.",
-  "version": "2.1",
+  "version": "3.0",
   "queries": [
-    {"id": "G01", "question": "Hoe kan de rechtsbijstandverzekering worden opgezegd en welke termijn geldt?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["twee maanden", "2 maanden"], ["30 dagen"], ["schriftelijk", "online portaal"]]},
-    {"id": "G02", "question": "Wat is de maximale dekking per geschil en hoe hoog is het eigen risico?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["50.000", "50000"], ["250"]]},
-    {"id": "G03", "question": "Welke soorten geschillen zijn uitgesloten van dekking?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["strafzaken"], ["fiscale"], ["onroerend goed"]]},
-    {"id": "G04", "question": "Ik heb een conflict met mijn verhuurder, twee maanden nadat ik de verzekering heb afgesloten. Ben ik gedekt?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["wachttijd"], ["3 maanden", "drie maanden"]]},
-    {"id": "G05", "question": "Wat zijn mijn verplichtingen als ik een geschil heb?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["30 dagen"], ["documenten"]]},
-    {"id": "G06", "question": "Hoeveel premie betaal ik per jaar en wat gebeurt er bij te late betaling?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["180"], ["opgeschort", "opschorting"]]},
-    {"id": "G07", "question": "Mag ik mijn eigen advocaat kiezen en tot welk bedrag worden de kosten vergoed?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["eigen advocaat", "vrije advocaatkeuze"], ["50.000", "maximum van de dekking"]]},
-    {"id": "G08", "question": "Waar kan ik terecht als ik het niet eens ben met de afhandeling van mijn zaak?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["klachtenprocedure", "klacht"], ["kifid"]]},
-    {"id": "G09", "question": "What is the deductible and the annual premium of this policy?", "source": "sample_insurance_policy_nl.txt", "answerable": true,
-     "must_contain": [["250"], ["180"]]},
-    {"id": "G10", "question": "Wat is er gebeurd met de heer De Vries en welke verwondingen heeft hij?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["steiger"], ["linkerpols", "pols"], ["ribben"]]},
-    {"id": "G11", "question": "Op welke juridische grondslag is de werkgever aansprakelijk in de zaak De Vries?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["7:658"], ["zorgplicht"]]},
-    {"id": "G12", "question": "Wat heeft de Arbeidsinspectie vastgesteld in de zaak De Vries?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["valbeveiliging"]]},
-    {"id": "G13", "question": "Hoe is de geschatte schade in de zaak De Vries opgebouwd?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["3.500", "3500"], ["4.200", "4200"], ["350"]]},
-    {"id": "G14", "question": "Welke vergelijkbare uitspraken worden genoemd in de zaaksamenvatting?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["BR5215"], ["RBROT:2020:4312", "Rotterdam"]]},
-    {"id": "G15", "question": "Wat zijn de volgende stappen in de zaak De Vries?", "source": "sample_case_summary_nl.txt", "answerable": true,
-     "must_contain": [["medisch adviseur", "letselschaderapport"], ["getuigen"]]},
-    {"id": "G16", "question": "Wat verzoekt Voorbeeld Rechtsbijstand de werkgever in de aansprakelijkstelling?", "source": "sample_legal_letter_nl.txt", "answerable": true,
-     "must_contain": [["aansprakelijkheid"], ["14 dagen"]]},
-    {"id": "G17", "question": "Welke veiligheidsgebreken worden in de brief aan de werkgever genoemd?", "source": "sample_legal_letter_nl.txt", "answerable": true,
-     "must_contain": [["leuningen"], ["harnas"]]},
-    {"id": "G18", "question": "Welke bijlagen zijn met de aansprakelijkheidsbrief meegestuurd?", "source": "sample_legal_letter_nl.txt", "answerable": true,
-     "must_contain": [["medische verklaring"], ["foto"], ["loonstroken"]]},
-    {"id": "G19", "question": "Summarise the liability letter sent to the employer in three points.", "source": "sample_legal_letter_nl.txt", "answerable": true,
-     "must_contain": [["7:658"], ["14"]]},
-    {"id": "G20", "question": "Hoeveel vakantiedagen heeft de heer De Vries nog tegoed?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G21", "question": "Wat is het polisnummer van de autoverzekering van de heer De Vries?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G22", "question": "Welke advocaat vertegenwoordigt Bouwbedrijf Van Dijk?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G23", "question": "Hoeveel bedraagt de premie van de reisverzekering?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G24", "question": "Wat is het eigen risico van de zorgverzekering van de heer De Vries?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G25", "question": "Wat is de maximale dekking van de aansprakelijkheidsverzekering van Bouwbedrijf Van Dijk?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G26", "question": "Welke wachttijd geldt voor de reisverzekering?", "source": null, "answerable": false, "must_contain": []},
-    {"id": "G27", "question": "Hoeveel bedroegen de medische kosten van de collega van de heer De Vries?", "source": null, "answerable": false, "must_contain": []}
+    {
+      "id": "G01",
+      "question": "Hoe kan de rechtsbijstandverzekering worden opgezegd en welke termijn geldt?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "twee maanden",
+          "2 maanden"
+        ],
+        [
+          "30 dagen"
+        ],
+        [
+          "schriftelijk",
+          "online portaal"
+        ]
+      ]
+    },
+    {
+      "id": "G02",
+      "question": "Wat is de maximale dekking per geschil en hoe hoog is het eigen risico?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "50.000",
+          "50000"
+        ],
+        [
+          "250"
+        ]
+      ]
+    },
+    {
+      "id": "G03",
+      "question": "Welke soorten geschillen zijn uitgesloten van dekking?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "strafzaken"
+        ],
+        [
+          "fiscale"
+        ],
+        [
+          "onroerend goed"
+        ]
+      ]
+    },
+    {
+      "id": "G04",
+      "question": "Ik heb een conflict met mijn verhuurder, twee maanden nadat ik de verzekering heb afgesloten. Ben ik gedekt?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "wachttijd"
+        ],
+        [
+          "3 maanden",
+          "drie maanden"
+        ]
+      ]
+    },
+    {
+      "id": "G05",
+      "question": "Wat zijn mijn verplichtingen als ik een geschil heb?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "30 dagen"
+        ],
+        [
+          "documenten"
+        ]
+      ]
+    },
+    {
+      "id": "G06",
+      "question": "Hoeveel premie betaal ik per jaar en wat gebeurt er bij te late betaling?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "180"
+        ],
+        [
+          "opgeschort",
+          "opschorting"
+        ]
+      ]
+    },
+    {
+      "id": "G07",
+      "question": "Mag ik mijn eigen advocaat kiezen en tot welk bedrag worden de kosten vergoed?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "eigen advocaat",
+          "vrije advocaatkeuze"
+        ],
+        [
+          "50.000",
+          "maximum van de dekking"
+        ]
+      ]
+    },
+    {
+      "id": "G08",
+      "question": "Waar kan ik terecht als ik het niet eens ben met de afhandeling van mijn zaak?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "klachtenprocedure",
+          "klacht"
+        ],
+        [
+          "kifid"
+        ]
+      ]
+    },
+    {
+      "id": "G09",
+      "question": "What is the deductible and the annual premium of this policy?",
+      "source": "sample_insurance_policy_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "250"
+        ],
+        [
+          "180"
+        ]
+      ]
+    },
+    {
+      "id": "G10",
+      "question": "Wat is er gebeurd met de heer De Vries en welke verwondingen heeft hij?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "steiger"
+        ],
+        [
+          "linkerpols",
+          "pols"
+        ],
+        [
+          "ribben"
+        ]
+      ]
+    },
+    {
+      "id": "G11",
+      "question": "Op welke juridische grondslag is de werkgever aansprakelijk in de zaak De Vries?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "7:658"
+        ],
+        [
+          "zorgplicht"
+        ]
+      ]
+    },
+    {
+      "id": "G12",
+      "question": "Wat heeft de Arbeidsinspectie vastgesteld in de zaak De Vries?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "valbeveiliging"
+        ]
+      ]
+    },
+    {
+      "id": "G13",
+      "question": "Hoe is de geschatte schade in de zaak De Vries opgebouwd?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "3.500",
+          "3500"
+        ],
+        [
+          "4.200",
+          "4200"
+        ],
+        [
+          "350"
+        ]
+      ]
+    },
+    {
+      "id": "G14",
+      "question": "Welke vergelijkbare uitspraken worden genoemd in de zaaksamenvatting?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "BR5215"
+        ],
+        [
+          "RBROT:2020:4312",
+          "Rotterdam"
+        ]
+      ]
+    },
+    {
+      "id": "G15",
+      "question": "Wat zijn de volgende stappen in de zaak De Vries?",
+      "source": "sample_case_summary_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "medisch adviseur",
+          "letselschaderapport"
+        ],
+        [
+          "getuigen"
+        ]
+      ]
+    },
+    {
+      "id": "G16",
+      "question": "Wat verzoekt Voorbeeld Rechtsbijstand de werkgever in de aansprakelijkstelling?",
+      "source": "sample_legal_letter_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "aansprakelijkheid"
+        ],
+        [
+          "14 dagen"
+        ]
+      ]
+    },
+    {
+      "id": "G17",
+      "question": "Welke veiligheidsgebreken worden in de brief aan de werkgever genoemd?",
+      "source": "sample_legal_letter_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "leuningen"
+        ],
+        [
+          "harnas"
+        ]
+      ]
+    },
+    {
+      "id": "G18",
+      "question": "Welke bijlagen zijn met de aansprakelijkheidsbrief meegestuurd?",
+      "source": "sample_legal_letter_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "medische verklaring"
+        ],
+        [
+          "foto"
+        ],
+        [
+          "loonstroken"
+        ]
+      ]
+    },
+    {
+      "id": "G19",
+      "question": "Summarise the liability letter sent to the employer in three points.",
+      "source": "sample_legal_letter_nl.txt",
+      "answerable": true,
+      "must_contain": [
+        [
+          "7:658"
+        ],
+        [
+          "14"
+        ]
+      ]
+    },
+    {
+      "id": "G20",
+      "question": "Hoeveel vakantiedagen heeft de heer De Vries nog tegoed?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G21",
+      "question": "Wat is het polisnummer van de autoverzekering van de heer De Vries?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G22",
+      "question": "Welke advocaat vertegenwoordigt Bouwbedrijf Van Dijk?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G23",
+      "question": "Hoeveel bedraagt de premie van de reisverzekering?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G24",
+      "question": "Wat is het eigen risico van de zorgverzekering van de heer De Vries?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G25",
+      "question": "Wat is de maximale dekking van de aansprakelijkheidsverzekering van Bouwbedrijf Van Dijk?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G26",
+      "question": "Welke wachttijd geldt voor de reisverzekering?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G27",
+      "question": "Hoeveel bedroegen de medische kosten van de collega van de heer De Vries?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G28",
+      "question": "Hoe hoog zijn de kale huur en het voorschot servicekosten van de woning aan de Lindenlaan 14-2?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "answerable": true,
+      "must_contain": [
+        [
+          "1.185"
+        ],
+        [
+          "65"
+        ]
+      ]
+    },
+    {
+      "id": "G29",
+      "question": "Welke onderdelen vallen onder het voorschot servicekosten in de huurovereenkomst van mevrouw De Wit?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "answerable": true,
+      "must_contain": [
+        [
+          "schoonmaak"
+        ],
+        [
+          "tuinonderhoud",
+          "tuin"
+        ],
+        [
+          "glasbewassing"
+        ],
+        [
+          "energie"
+        ]
+      ]
+    },
+    {
+      "id": "G30",
+      "question": "Hoeveel bedraagt de waarborgsom voor de woning aan de Lindenlaan 14-2?",
+      "source": "Huurovereenkomst woonruimte Lindenlaan 14-2 Utrecht",
+      "answerable": true,
+      "must_contain": [
+        [
+          "2.370"
+        ]
+      ]
+    },
+    {
+      "id": "G31",
+      "question": "Welke gebreken meldde mevrouw De Wit in haar brief van 12 januari 2026, en welke termijn stelde zij voor herstel?",
+      "source": "Brief huurder over gebreken badkamer en slaapkamer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "badkamer"
+        ],
+        [
+          "schimmel"
+        ],
+        [
+          "23 februari 2026",
+          "zes weken",
+          "6 weken"
+        ]
+      ]
+    },
+    {
+      "id": "G32",
+      "question": "Hoeveel houdt mevrouw De Wit per maand in op de huur tot de gebreken zijn hersteld?",
+      "source": "Brief huurder over gebreken badkamer en slaapkamer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "350"
+        ]
+      ]
+    },
+    {
+      "id": "G33",
+      "question": "Hoe hoog is de huurachterstand van mevrouw De Wit volgens het overzicht van 2 april 2026?",
+      "source": "Overzicht huurachterstand De Wit",
+      "answerable": true,
+      "must_contain": [
+        [
+          "1.950"
+        ]
+      ]
+    },
+    {
+      "id": "G34",
+      "question": "Hoeveel heeft mevrouw De Wit in februari 2026 betaald?",
+      "source": "Overzicht huurachterstand De Wit",
+      "answerable": true,
+      "must_contain": [
+        [
+          "900"
+        ]
+      ]
+    },
+    {
+      "id": "G35",
+      "question": "Wat wordt de kale huur van mevrouw De Wit per 1 juli 2026 en met welk percentage stijgt die?",
+      "source": "Voorstel huurverhoging per 1 juli 2026 Lindenlaan 14-2",
+      "answerable": true,
+      "must_contain": [
+        [
+          "1.233,59",
+          "1233,59"
+        ],
+        [
+          "4,1",
+          "4.1"
+        ]
+      ]
+    },
+    {
+      "id": "G36",
+      "question": "Hoe lang is de proeftijd in de arbeidsovereenkomst van Eva Kramer?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "één maand",
+          "een maand",
+          "1 maand"
+        ]
+      ]
+    },
+    {
+      "id": "G37",
+      "question": "Wat is het bruto maandsalaris van Eva Kramer, en hoeveel vakantietoeslag krijgt zij?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "3.450"
+        ],
+        [
+          "8%",
+          "8 %",
+          "8 procent"
+        ]
+      ]
+    },
+    {
+      "id": "G38",
+      "question": "Welke opzegtermijnen gelden voor werkgever en werknemer in de arbeidsovereenkomst van Eva Kramer?",
+      "source": "Arbeidsovereenkomst voor bepaalde tijd Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "één maand",
+          "een maand",
+          "1 maand"
+        ],
+        [
+          "twee maanden",
+          "2 maanden"
+        ]
+      ]
+    },
+    {
+      "id": "G39",
+      "question": "Om welke redenen is Eva Kramer op staande voet ontslagen?",
+      "source": "Brief ontslag op staande voet Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "9, 10 en 11 maart",
+          "9 tot en met 11 maart",
+          "niet op uw werk verschenen",
+          "afwezig"
+        ],
+        [
+          "weekplanning",
+          "Hanzevracht",
+          "geweigerd",
+          "weigering"
+        ]
+      ]
+    },
+    {
+      "id": "G40",
+      "question": "Is volgens Noordlicht Logistiek een transitievergoeding verschuldigd na het ontslag van Eva Kramer?",
+      "source": "Brief ontslag op staande voet Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "niet verschuldigd",
+          "geen transitievergoeding"
+        ],
+        [
+          "ernstig verwijtbaar"
+        ]
+      ]
+    },
+    {
+      "id": "G41",
+      "question": "Welk brutosalaris is over maart 2026 voor Eva Kramer berekend, en is het uitbetaald?",
+      "source": "Loonoverzicht Eva Kramer januari tot en met maart 2026",
+      "answerable": true,
+      "must_contain": [
+        [
+          "1.558,06"
+        ],
+        [
+          "niet betaald",
+          "niet uitbetaald"
+        ]
+      ]
+    },
+    {
+      "id": "G42",
+      "question": "Welke bedragen biedt Noordlicht Logistiek Eva Kramer aan in de concept-vaststellingsovereenkomst?",
+      "source": "Concept vaststellingsovereenkomst Noordlicht Logistiek en Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "4.000"
+        ],
+        [
+          "750"
+        ]
+      ]
+    },
+    {
+      "id": "G43",
+      "question": "Hoe lang is de bedenktermijn in de vaststellingsovereenkomst met Eva Kramer?",
+      "source": "Concept vaststellingsovereenkomst Noordlicht Logistiek en Eva Kramer",
+      "answerable": true,
+      "must_contain": [
+        [
+          "veertien dagen",
+          "14 dagen"
+        ]
+      ]
+    },
+    {
+      "id": "G44",
+      "question": "Wat is het eigen risico voor bijgebouwen op de woonhuisverzekering van de heer Visser?",
+      "source": "Polisblad woonhuisverzekering Visser",
+      "answerable": true,
+      "must_contain": [
+        [
+          "250"
+        ]
+      ]
+    },
+    {
+      "id": "G45",
+      "question": "Wanneer is stormschade gedekt volgens de polis van de heer Visser?",
+      "source": "Polisblad woonhuisverzekering Visser",
+      "answerable": true,
+      "must_contain": [
+        [
+          "14 meter per seconde",
+          "windkracht 7"
+        ]
+      ]
+    },
+    {
+      "id": "G46",
+      "question": "Welke oorzaken van de schade heeft de heer Visser aangekruist op het schadeformulier?",
+      "source": "Schadeaangifteformulier storm Dijkstraat 88 Arnhem",
+      "answerable": true,
+      "must_contain": [
+        [
+          "storm"
+        ],
+        [
+          "neerslag"
+        ]
+      ]
+    },
+    {
+      "id": "G47",
+      "question": "Op welk bedrag schat de heer Visser de totale schade in zijn schademelding?",
+      "source": "Schadeaangifteformulier storm Dijkstraat 88 Arnhem",
+      "answerable": true,
+      "must_contain": [
+        [
+          "6.800"
+        ]
+      ]
+    },
+    {
+      "id": "G48",
+      "question": "Waarom heeft Zekerheid Schadeverzekeringen de claim van de heer Visser afgewezen?",
+      "source": "Afwijzing schadeclaim storm Visser door Zekerheid Schadeverzekeringen",
+      "answerable": true,
+      "must_contain": [
+        [
+          "windkracht 6",
+          "12 meter per seconde"
+        ],
+        [
+          "slecht onderhoud",
+          "panlatten",
+          "verrot"
+        ]
+      ]
+    },
+    {
+      "id": "G49",
+      "question": "Binnen welke termijn kan de heer Visser bezwaar maken tegen de afwijzing van zijn claim?",
+      "source": "Afwijzing schadeclaim storm Visser door Zekerheid Schadeverzekeringen",
+      "answerable": true,
+      "must_contain": [
+        [
+          "30 dagen",
+          "dertig dagen"
+        ]
+      ]
+    },
+    {
+      "id": "G50",
+      "question": "Welke opzegtermijn moet een huurder van woonruimte volgens de wet in acht nemen?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 4 Huur, afdelingen 1 tot en met 5 (huur en huur van woonruimte)",
+      "answerable": true,
+      "must_contain": [
+        [
+          "een maand",
+          "één maand"
+        ],
+        [
+          "drie maanden",
+          "3 maanden"
+        ]
+      ]
+    },
+    {
+      "id": "G51",
+      "question": "Mag een arbeidsovereenkomst voor bepaalde tijd een concurrentiebeding bevatten, en onder welke voorwaarde?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "answerable": true,
+      "must_contain": [
+        [
+          "motivering",
+          "gemotiveerd"
+        ],
+        [
+          "zwaarwegende"
+        ]
+      ]
+    },
+    {
+      "id": "G52",
+      "question": "Hoe lang mag de proeftijd volgens de wet zijn bij een arbeidsovereenkomst voor bepaalde tijd van twaalf maanden?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "answerable": true,
+      "must_contain": [
+        [
+          "een maand",
+          "één maand",
+          "1 maand"
+        ]
+      ]
+    },
+    {
+      "id": "G53",
+      "question": "Binnen welke termijn kan een werknemer een beëindigingsovereenkomst ontbinden, en wat geldt als de werkgever dat recht niet vermeldt?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "answerable": true,
+      "must_contain": [
+        [
+          "veertien dagen",
+          "14 dagen"
+        ],
+        [
+          "drie weken",
+          "3 weken"
+        ]
+      ]
+    },
+    {
+      "id": "G54",
+      "question": "Wanneer kan een huurder volgens de wet huurvermindering vorderen wegens een gebrek?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 4 Huur, afdelingen 1 tot en met 5 (huur en huur van woonruimte)",
+      "answerable": true,
+      "must_contain": [
+        [
+          "evenredige vermindering",
+          "evenredig"
+        ],
+        [
+          "kennis gegeven",
+          "gemeld",
+          "melding"
+        ]
+      ]
+    },
+    {
+      "id": "G55",
+      "question": "Wat moet een verzekeringnemer volgens artikel 7:928 BW doen vóór het sluiten van de verzekering?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 17 Verzekering, afdeling 1 en 2 (algemeen en schadeverzekering)",
+      "answerable": true,
+      "must_contain": [
+        [
+          "feiten",
+          "mededelen",
+          "mede te delen"
+        ]
+      ]
+    },
+    {
+      "id": "G56",
+      "question": "Wanneer kan een werkgever aansprakelijkheid voor een arbeidsongeval ontlopen volgens artikel 7:658 BW?",
+      "source": "Burgerlijk Wetboek Boek 7, Titel 10 Arbeidsovereenkomst",
+      "answerable": true,
+      "must_contain": [
+        [
+          "nagekomen",
+          "zorgplicht"
+        ],
+        [
+          "opzet of bewuste roekeloosheid",
+          "bewuste roekeloosheid"
+        ]
+      ]
+    },
+    {
+      "id": "G57",
+      "question": "Waarom werd de huurovereenkomst ontbonden in de zaak van Casade bij Rechtbank Zeeland-West-Brabant?",
+      "source": "Uitspraak Rechtbank Zeeland-West-Brabant 2025-01-15 ECLI:NL:RBZWB:2025:203",
+      "answerable": true,
+      "must_contain": [
+        [
+          "hoofdverblijf"
+        ],
+        [
+          "derden"
+        ]
+      ]
+    },
+    {
+      "id": "G58",
+      "question": "Welke vergoedingen kende de Rotterdamse kantonrechter toe na het onterechte ontslag op staande voet in ECLI:NL:RBROT:2025:1815?",
+      "source": "Uitspraak Rechtbank Rotterdam 2025-02-13 ECLI:NL:RBROT:2025:1815",
+      "answerable": true,
+      "must_contain": [
+        [
+          "billijke vergoeding"
+        ],
+        [
+          "transitievergoeding"
+        ],
+        [
+          "4.000"
+        ]
+      ]
+    },
+    {
+      "id": "G59",
+      "question": "Wat oordeelde de kantonrechter in ECLI:NL:RBMNE:2025:303 over de opzegging van 5 september 2024?",
+      "source": "Uitspraak Rechtbank Midden-Nederland 2025-02-10 ECLI:NL:RBMNE:2025:303",
+      "answerable": true,
+      "must_contain": [
+        [
+          "niet rechtsgeldig"
+        ],
+        [
+          "3.064,52"
+        ]
+      ]
+    },
+    {
+      "id": "G60",
+      "question": "Welk achterstallig salaris moest de werkgever betalen in ECLI:NL:RBZWB:2025:321?",
+      "source": "Uitspraak Rechtbank Zeeland-West-Brabant 2025-01-22 ECLI:NL:RBZWB:2025:321",
+      "answerable": true,
+      "must_contain": [
+        [
+          "november"
+        ],
+        [
+          "6.000"
+        ]
+      ]
+    },
+    {
+      "id": "G61",
+      "question": "Welke billijke vergoeding heeft de kantonrechter aan Eva Kramer toegekend?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G62",
+      "question": "Heeft de Huurcommissie de huur van mevrouw De Wit verlaagd?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G63",
+      "question": "Wat is het polisnummer van de rechtsbijstandverzekering van de heer Visser?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G64",
+      "question": "Hoeveel bedraagt het eigen risico voor stormschade op de verzekering van de heer De Vries?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G65",
+      "question": "Op welke datum is de vaststellingsovereenkomst met Eva Kramer ondertekend?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    },
+    {
+      "id": "G66",
+      "question": "Wat heeft het Kifid beslist over de klacht van de heer Visser?",
+      "source": null,
+      "answerable": false,
+      "must_contain": []
+    }
   ]
 }

@@ -70,6 +70,9 @@ param blobEndpoint string
 @description('Key Vault URI.')
 param keyVaultUri string
 
+@description('Deploy the remote MCP server. Needs the secret mcp-api-key in Key Vault (scripts/deploy.sh creates it).')
+param mcpEnabled bool = false
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
@@ -244,6 +247,79 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ---------------------------------------------------------------------------
+// Container App — MCP server for other people's agents (same image as the API)
+// ---------------------------------------------------------------------------
+// Streamable HTTP at /mcp, API key required, stateless (any replica serves any client).
+// Its tools call the API, so they go through the same guardrails and audit log.
+resource mcpApp 'Microsoft.App/containerApps@2024-03-01' = if (mcpEnabled && !apiUsesPlaceholder) {
+  name: 'ca-${projectName}-mcp-${environmentName}'
+  location: location
+  tags: union(tags, { 'azd-service-name': 'mcp' })
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: { '${identityId}': {} }
+  }
+  properties: {
+    managedEnvironmentId: containerAppEnv.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: true
+        targetPort: 8001
+        transport: 'http'
+        allowInsecure: false
+      }
+      registries: [
+        { server: acrLoginServer, identity: identityId }
+      ]
+      // Read from Key Vault by the managed identity; the key never appears in the template
+      secrets: [
+        { name: 'mcp-api-key', keyVaultUrl: '${keyVaultUri}secrets/mcp-api-key', identity: identityId }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'legalmind-mcp'
+          image: apiImage
+          command: ['legalmind-mcp']
+          args: ['--transport', 'streamable-http', '--remote', '--host', '0.0.0.0', '--port', '8001']
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: [
+            { name: 'LEGALMIND_API_URL', value: 'https://${apiApp.properties.configuration.ingress.fqdn}' }
+            { name: 'LEGALMIND_MCP_API_KEY', secretRef: 'mcp-api-key' }
+          ]
+          probes: [
+            {
+              type: 'Startup'
+              httpGet: { path: '/health', port: 8001, scheme: 'HTTP' }
+              periodSeconds: 5
+              failureThreshold: 24
+            }
+            {
+              type: 'Liveness'
+              httpGet: { path: '/health', port: 8001, scheme: 'HTTP' }
+              periodSeconds: 30
+              failureThreshold: 3
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: isProd ? 1 : 0
+        maxReplicas: isProd ? 5 : 2
+        rules: [
+          { name: 'http-scaling', http: { metadata: { concurrentRequests: '20' } } }
+        ]
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Outputs
 // ---------------------------------------------------------------------------
 @description('Name of the Container Apps Environment.')
@@ -260,3 +336,6 @@ output apiUrl string = 'https://${apiApp.properties.configuration.ingress.fqdn}'
 
 @description('HTTPS URL of the frontend.')
 output frontendUrl string = 'https://${frontendApp.properties.configuration.ingress.fqdn}'
+
+@description('MCP endpoint for other agents (empty when the MCP server is not deployed).')
+output mcpUrl string = mcpEnabled && !apiUsesPlaceholder ? 'https://${mcpApp!.properties.configuration.ingress.fqdn}/mcp' : ''

@@ -13,7 +13,7 @@ authors = [{ name = "Munyaradzi Zhou" }]
 
 dependencies = [
     # Azure AI Services
-    "azure-ai-formrecognizer>=3.3.0",
+    "azure-ai-documentintelligence>=1.0.2",  # Document Intelligence API 2024-11-30 (Markdown output)
     "azure-ai-textanalytics>=5.3.0",
     "azure-ai-translation-text>=1.0.0",
     "azure-ai-contentsafety>=1.0.0",
@@ -76,6 +76,15 @@ dev = [
     "bandit>=1.7.0",
     "pre-commit>=3.7.0",
     "ipykernel>=6.29.0",
+    "rapidfuzz>=3.9.0",  # character and word error rates in the extraction benchmark
+]
+# Building the evaluation corpus (scripts/build_corpus.py): PDF, Word, scans and photos
+corpus = [
+    "fpdf2>=2.8.0",
+    "python-docx>=1.1.0",
+    "pypdfium2>=4.30.0",
+    "pillow>=10.0.0",
+    "lxml>=5.0.0",
 ]
 frontend = [
     "streamlit>=1.50.0",
@@ -123,6 +132,10 @@ ignore = ["S101", "S104"]
 # FastAPI reads route parameter annotations at runtime, so request models used in
 # route signatures must NOT be moved into `if TYPE_CHECKING:` blocks.
 "src/legalmind/api/routes/*" = ["TC001", "TC002", "TC003"]
+# Command-line scripts report progress with print; random only drives synthetic scan noise.
+"scripts/*" = ["T201", "S311"]
+# Question tables: one question per line reads better than wrapped tuples.
+"tests/evaluation/datasets/*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["legalmind"]

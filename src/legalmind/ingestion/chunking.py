@@ -65,9 +65,13 @@ _HEADING_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"^(?:HOOFDSTUK|Hoofdstuk)\s+[IVXLCDM\d]+", re.IGNORECASE),
     re.compile(r"^(?:Paragraaf|Par\.?)\s+\d+", re.IGNORECASE),
     re.compile(r"^(?:Afdeling)\s+\d+", re.IGNORECASE),
-    re.compile(r"^\d+(?:\.\d+)*\.?\s+[A-Z]"),  # "1. Definities", "3.2 Verplichtingen"
     re.compile(r"^[A-Z][A-Z\s]{2,}$"),  # ALL CAPS lines (common headings)
 ]
+
+# "1. Definities", "3.2 Verplichtingen" — but not a numbered clause such as
+# "2.2 De maximale dekking bedraagt €50.000 per geschil", so: few words, no sentence ending.
+_NUMBERED_HEADING = re.compile(r"^\d+(?:\.\d+)*\.?\s+[A-Z]")
+_NUMBERED_HEADING_MAX_WORDS = 5
 
 
 def _is_heading(line: str) -> bool:
@@ -75,7 +79,13 @@ def _is_heading(line: str) -> bool:
     stripped = line.strip()
     if not stripped or len(stripped) > 200:
         return False
-    return any(pattern.match(stripped) for pattern in _HEADING_PATTERNS)
+    if any(pattern.match(stripped) for pattern in _HEADING_PATTERNS):
+        return True
+    return (
+        _NUMBERED_HEADING.match(stripped) is not None
+        and len(stripped.split()) <= _NUMBERED_HEADING_MAX_WORDS
+        and not stripped.endswith((".", ",", ";", ":"))
+    )
 
 
 def _extract_heading_title(line: str) -> str:
@@ -176,6 +186,7 @@ def semantic_chunk(
     document_id: str,
     *,
     paragraphs: list[dict[str, Any]] | None = None,
+    page_boundaries: list[tuple[int, int, int]] | None = None,
     min_chunk_size: int = 200,
     max_chunk_size: int = 2000,
     metadata: dict[str, Any] | None = None,
@@ -189,7 +200,9 @@ def semantic_chunk(
         full_text: Complete document text.
         document_id: ID of the source document.
         paragraphs: Optional paragraph metadata from Document Intelligence
-            (used for accurate page number mapping).
+            (used to estimate page numbers when exact ranges are not given).
+        page_boundaries: Exact ``(page_number, start, end)`` character ranges
+            in ``full_text``, from Document Intelligence page spans.
         min_chunk_size: Minimum characters per chunk. Shorter sections are merged.
         max_chunk_size: Maximum characters per chunk. Sections exceeding this
             are split into fixed-size sub-chunks.
@@ -201,7 +214,7 @@ def semantic_chunk(
     if not full_text.strip():
         return []
 
-    page_boundaries = build_page_boundaries(paragraphs or [], full_text)
+    page_boundaries = page_boundaries or build_page_boundaries(paragraphs or [], full_text)
     extra_meta = metadata or {}
 
     # Split the text into sections based on headings
@@ -217,8 +230,13 @@ def semantic_chunk(
     for title, body, start_offset in sections:
         section_text = f"{title}\n\n{body}".strip() if title else body.strip()
 
-        # If accumulated text is below minimum, keep accumulating
-        if accumulated_text and len(accumulated_text) + len(section_text) < min_chunk_size:
+        # A section below the minimum (a bare heading, a one-line clause) joins the next one,
+        # as long as the result stays within the maximum
+        if (
+            accumulated_text
+            and len(accumulated_text) < min_chunk_size
+            and len(accumulated_text) + len(section_text) <= max_chunk_size
+        ):
             accumulated_text += "\n\n" + section_text
             continue
 
@@ -480,6 +498,7 @@ def parent_child_chunk(
     document_id: str,
     *,
     paragraphs: list[dict[str, Any]] | None = None,
+    page_boundaries: list[tuple[int, int, int]] | None = None,
     parent_max_size: int = 4000,
     child_size: int = 800,
     child_overlap: int = 100,
@@ -498,6 +517,7 @@ def parent_child_chunk(
         full_text: Complete document text.
         document_id: ID of the source document.
         paragraphs: Optional paragraph metadata for page mapping.
+        page_boundaries: Exact ``(page_number, start, end)`` character ranges.
         parent_max_size: Maximum size of parent chunks in characters.
         child_size: Target size of child chunks in characters.
         child_overlap: Overlap between consecutive child chunks.
@@ -512,7 +532,7 @@ def parent_child_chunk(
         return []
 
     extra_meta = metadata or {}
-    page_boundaries = build_page_boundaries(paragraphs or [], full_text)
+    page_boundaries = page_boundaries or build_page_boundaries(paragraphs or [], full_text)
 
     # First, create semantic sections as parent chunks
     sections = _split_into_sections(full_text)
