@@ -98,7 +98,9 @@ def table_accuracy(truth: list[list[list[str]]], extracted: list[list[list[str]]
         total += len(cells)
         best = 0
         for candidate in extracted:
-            hits = sum(1 for r, c, v in cells if r < len(candidate) and c < len(candidate[r]) and _cell(candidate[r][c]) == v)
+            hits = sum(
+                1 for r, c, v in cells if r < len(candidate) and c < len(candidate[r]) and _cell(candidate[r][c]) == v
+            )
             best = max(best, hits)
         correct += best
     return correct, total
@@ -198,9 +200,16 @@ async def evaluate(backends: list[str]) -> list[dict[str, Any]]:
             try:
                 content, pages = await BACKENDS[backend](data, case)
             except Exception as error:
-                rows.append({"document": case["id"], "variant": case["variant"], "format": case["format"],
-                             "backend": backend, "error": f"{type(error).__name__}: {str(error)[:160]}"})
-                print(f"{backend:22} {case['id']:38} {case['variant']:10} ERROR {type(error).__name__}", flush=True)
+                rows.append(
+                    {
+                        "document": case["id"],
+                        "variant": case["variant"],
+                        "format": case["format"],
+                        "backend": backend,
+                        "error": f"{type(error).__name__}: {str(error)[:160]}",
+                    }
+                )
+                print(f"{backend:22} {case['id']:38} {case['variant']:10} ERROR {type(error).__name__}", flush=True)  # noqa: T201
                 continue
             seconds = time.monotonic() - started
             cer, wer = error_rates(case["truth_text"], content)
@@ -221,9 +230,16 @@ async def evaluate(backends: list[str]) -> list[dict[str, Any]]:
                 "seconds": round(seconds, 1),
             }
             rows.append(row)
-            print(f"{backend:22} {case['id']:38} {case['variant']:10} CER {cer:.3f} WER {wer:.3f} "
-                  f"tables {cells_ok}/{cells} {seconds:.1f}s", flush=True)
+            print(  # noqa: T201
+                f"{backend:22} {case['id']:38} {case['variant']:10} CER {cer:.3f} WER {wer:.3f} "
+                f"tables {cells_ok}/{cells} {seconds:.1f}s",
+                flush=True,
+            )
     return rows
+
+
+def _cells(row: dict[str, Any]) -> str:
+    return f"{row['table_cells_correct']}/{row['table_cells']}"
 
 
 def summarise(rows: list[dict[str, Any]], backends: list[str]) -> tuple[dict[str, Any], str]:
@@ -256,23 +272,33 @@ def summarise(rows: list[dict[str, Any]], backends: list[str]) -> tuple[dict[str
             mine = [r for r in ok if r["backend"] == backend and r["format"] == fmt and r["variant"] == "delivered"]
             if mine:
                 cells = sum(r["table_cells"] for r in mine)
-                by_format.append({
-                    "backend": backend, "format": fmt, "documents": len(mine),
-                    "CER": mean([r["cer"] for r in mine]), "WER": mean([r["wer"] for r in mine]),
-                    "table cells": (sum(r["table_cells_correct"] for r in mine) / cells) if cells else "-",
-                })
+                by_format.append(
+                    {
+                        "backend": backend,
+                        "format": fmt,
+                        "documents": len(mine),
+                        "CER": mean([r["cer"] for r in mine]),
+                        "WER": mean([r["wer"] for r in mine]),
+                        "table cells": (sum(r["table_cells_correct"] for r in mine) / cells) if cells else "-",
+                    }
+                )
 
     degradation = []
     for backend in backends:
         for doc in sorted({r["document"] for r in ok if r["variant"] == "clean twin" and r["backend"] == backend}):
             pair = {r["variant"]: r for r in ok if r["backend"] == backend and r["document"] == doc}
             if len(pair) == 2:
-                degradation.append({
-                    "backend": backend, "document": doc, "format": pair["delivered"]["format"],
-                    "CER clean": pair["clean twin"]["cer"], "CER delivered": pair["delivered"]["cer"],
-                    "cells clean": f"{pair['clean twin']['table_cells_correct']}/{pair['clean twin']['table_cells']}",
-                    "cells delivered": f"{pair['delivered']['table_cells_correct']}/{pair['delivered']['table_cells']}",
-                })
+                degradation.append(
+                    {
+                        "backend": backend,
+                        "document": doc,
+                        "format": pair["delivered"]["format"],
+                        "CER clean": pair["clean twin"]["cer"],
+                        "CER delivered": pair["delivered"]["cer"],
+                        "cells clean": _cells(pair["clean twin"]),
+                        "cells delivered": _cells(pair["delivered"]),
+                    }
+                )
 
     errors = [r for r in rows if "error" in r]
     markdown = (
@@ -280,11 +306,15 @@ def summarise(rows: list[dict[str, Any]], backends: list[str]) -> tuple[dict[str
         f"{len({r['document'] for r in rows})} fictional case-file documents with exact ground truth "
         "(text, table cells, checkbox states), as delivered (PDF, Word, scan, photo) and, for scans and photos, "
         "as a clean born-digital twin.\n\n"
-        "## By backend (documents as delivered)\n\n" + markdown_table(by_backend) +
-        "\n## By format\n\n" + markdown_table(by_format) +
-        "\n## What the scan or photo costs (same page, clean vs delivered)\n\n" + markdown_table(degradation) +
-        "\n## Per document\n\n" + markdown_table([{k: v for k, v in r.items() if k != "error"} for r in ok]) +
-        ("\n## Errors\n\n" + markdown_table(errors) if errors else "")
+        "## By backend (documents as delivered)\n\n"
+        + markdown_table(by_backend)
+        + "\n## By format\n\n"
+        + markdown_table(by_format)
+        + "\n## What the scan or photo costs (same page, clean vs delivered)\n\n"
+        + markdown_table(degradation)
+        + "\n## Per document\n\n"
+        + markdown_table([{k: v for k, v in r.items() if k != "error"} for r in ok])
+        + ("\n## Errors\n\n" + markdown_table(errors) if errors else "")
     )
     return summary, markdown
 

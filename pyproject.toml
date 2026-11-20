@@ -134,6 +134,8 @@ ignore = ["S101", "S104"]
 "src/legalmind/api/routes/*" = ["TC001", "TC002", "TC003"]
 # Command-line scripts report progress with print; random only drives synthetic scan noise.
 "scripts/*" = ["T201", "S311"]
+# Question tables: one question per line reads better than wrapped tuples.
+"tests/evaluation/datasets/*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["legalmind"]
