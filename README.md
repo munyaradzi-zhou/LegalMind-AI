@@ -83,6 +83,23 @@ All service-to-service calls use Microsoft Entra ID through one user-assigned ma
 | API Management | Gateway and rate limiting | Consumption |
 | Key Vault · Log Analytics · Application Insights | Secrets, logs, traces | Standard · PAYG |
 
+### Data protection
+
+Who sees what is decided per document ([ADR 0001](docs/adr/0001-document-level-security-trimming.md)): public law for everyone, a client's files only for the people on that matter, privileged documents only for lawyers. What is stored, and for how long:
+
+| Data | Where | Kept | Who can read it |
+|---|---|---|---|
+| Original documents | Blob Storage | Until deleted, then 7 days soft-deleted (30 in prod) | The app's identity |
+| Chunks, embeddings, entities | AI Search | Until the document is replaced or deleted | Users whose matter groups match the chunk (filtered on every search) |
+| Conversations | Cosmos DB `sessions` | 30 days after the last message | The user who had the conversation |
+| Long-term memory | Cosmos DB `memory` | 30 days after the last update | That user |
+| Audit events (safety checks, routing, PII counts) | Cosmos DB `audit_log` | 365 days | Operators |
+| Logs and traces | Log Analytics, Application Insights | 30 days (90 in prod) | Operators |
+
+Conversations are stored with personal data replaced by its category (`[Person]`, `[NLBSNNumber]`, `[Address]`): the guardrails' PII detection runs on every question and answer, the model answers from the original, and Cosmos DB only receives the redacted text and references to the cited passages, not the passages. Audit events hold categories and counts, never message text.
+
+With `networkIsolation` (on for prod, a parameter elsewhere) the data services sit behind private endpoints in a VNet with public network access disabled; only the Container Apps environment, inside the VNet, can reach them. `scripts/check_isolation.py` calls every service from outside with a valid token and reports which ones the network refuses.
+
 ## Running on Azure
 
 Deployed end to end on an Azure subscription and measured with the evaluation suites and Application Insights:

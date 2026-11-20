@@ -4,6 +4,8 @@ param environmentName = 'staging'
 param location = 'eastus2'
 // eastus2 had no AI Search capacity for new services (Nov 2026)
 param searchLocation = 'centralus'
+// The trial subscription allows one OpenAI account per region, and dev has eastus2's
+param openAiLocation = 'swedencentral'
 param projectName = 'legalmind'
 param apimPublisherEmail = readEnvironmentVariable('APIM_PUBLISHER_EMAIL', 'admin@example.com')
 

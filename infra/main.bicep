@@ -23,6 +23,9 @@ param location string = resourceGroup().location
 @description('Region for Azure AI Search. Defaults to location; set it when that region has no Search capacity.')
 param searchLocation string = location
 
+@description('Region for Azure OpenAI. Defaults to location; set it when that region has no capacity (or the subscription allows one OpenAI account per region).')
+param openAiLocation string = location
+
 @description('Short project name used in resource names. Lowercase alphanumeric.')
 @minLength(3)
 @maxLength(12)
@@ -108,7 +111,7 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
   name: 'ai-foundry-${environmentName}'
   params: {
     publicNetworkAccess: publicNetworkAccess
-    location: location
+    location: openAiLocation
     environmentName: environmentName
     projectName: projectName
     containerAppPrincipalId: appPrincipalId
