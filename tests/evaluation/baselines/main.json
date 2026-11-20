@@ -1,0 +1,23 @@
+{
+  "commit": "dacf763",
+  "recorded": "2026-11-20",
+  "run": "ci-44778725289",
+  "metrics": {
+    "retrieval.hit@1": 0.6617647058823529,
+    "retrieval.hit@3": 0.8823529411764706,
+    "retrieval.hit@5": 0.9264705882352942,
+    "retrieval.mrr@10": 0.7721988795518206,
+    "retrieval.source@1": 0.7647058823529411,
+    "generation.questions": 66,
+    "generation.fact_recall": 0.9615384615384616,
+    "generation.all_facts_present": 0.9423076923076923,
+    "generation.right_source_cited": 0.9807692307692307,
+    "generation.groundedness_mean": 4.980769230769231,
+    "generation.grounded_4plus": 1.0,
+    "generation.refusal_rate_unanswerable": 0.9285714285714286,
+    "generation.unanswerable_safe": 1.0,
+    "generation.latency_p50_s": 14.47,
+    "generation.latency_p95_s": 24.45
+  },
+  "prompts": "472bb345c141"
+}

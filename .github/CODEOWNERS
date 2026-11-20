@@ -1,0 +1,7 @@
+# Every change needs a review from the owner; prompts, guardrails, infrastructure
+# and the evaluation baseline are listed separately to make that explicit.
+*                                    @munyaradzi-zhou
+/src/legalmind/agents/prompts/       @munyaradzi-zhou
+/src/legalmind/context/guardrails.py @munyaradzi-zhou
+/infra/                              @munyaradzi-zhou
+/tests/evaluation/baselines/         @munyaradzi-zhou

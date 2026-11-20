@@ -4,8 +4,10 @@ For every question the script calls POST /api/chat (a fresh session each), then 
 
 - fact recall:     share of expected facts present in the answer (any listed variant counts)
 - right source:    a citation comes from the expected document
-- groundedness:    an LLM judge reads the full source documents and rates 1-5 how well every
-                   claim is supported, listing unsupported claims
+- groundedness:    an LLM judge reads the passages the answer cites and rates 1-5 how well
+                   every claim is supported by them, listing unsupported claims (the corpus is
+                   too large to give the judge every document, and fact recall already checks
+                   correctness against the golden facts)
 - refusal:         for unanswerable questions, whether the answer says the documents don't say
 - safe:            for unanswerable questions, declined *or* labelled by the app's own groundedness
                    check as not backed by the documents (the user is warned either way). Some are
@@ -32,7 +34,6 @@ import truststore
 
 from legalmind.services.azure_openai import AzureOpenAIService
 from tests.evaluation._common import (
-    SAMPLE_DATA,
     load_dataset,
     markdown_table,
     mean,
@@ -56,11 +57,13 @@ Return JSON only, with these keys:
 """
 
 
-def _sources_text() -> str:
-    parts = []
-    for path in sorted(SAMPLE_DATA.rglob("*.txt")):
-        parts.append(f"=== {path.name} ===\n{path.read_text(encoding='utf-8')}")
-    return "\n\n".join(parts)
+def _cited_passages(reply: dict[str, Any]) -> str:
+    """The passages the answer cites, as the judge's source documents."""
+    parts = [
+        f"=== [{c['index']}] {c['document_title']} (p. {c.get('page_number')}) ===\n{c.get('chunk_content', '')}"
+        for c in reply.get("citations", [])
+    ]
+    return "\n\n".join(parts) or "(the answer cites no passages)"
 
 
 def _fact_recall(answer: str, facts: list[list[str]]) -> tuple[float, list[str]]:
@@ -90,11 +93,11 @@ async def _judge(openai: AzureOpenAIService, sources: str, question: str, answer
 
 async def evaluate_generation() -> dict[str, Any]:
     queries = load_dataset("generation_golden_set.json")
-    sources = _sources_text()
     openai = AzureOpenAIService()
     details: list[dict[str, Any]] = []
 
     async with httpx.AsyncClient(timeout=240, verify=truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)) as client:
+        health = (await client.get(f"{API_URL}/health")).json()
         for q in queries:
             started = time.perf_counter()
             response = await client.post(
@@ -105,7 +108,7 @@ async def evaluate_generation() -> dict[str, Any]:
             reply = response.json()
             answer = reply["message"]
             recall, missing = _fact_recall(answer, q["must_contain"])
-            verdict = await _judge(openai, sources, q["question"], answer)
+            verdict = await _judge(openai, _cited_passages(reply), q["question"], answer)
             cited = {c["document_title"] for c in reply.get("citations", [])}
             details.append(
                 {
@@ -131,6 +134,7 @@ async def evaluate_generation() -> dict[str, Any]:
     latencies = [d["latency_s"] for d in details]
     summary = {
         "questions": len(details),
+        "prompts": health.get("prompts", ""),
         "fact_recall": mean([d["fact_recall"] for d in answerable]),
         "all_facts_present": mean([1.0 if d["fact_recall"] == 1.0 else 0.0 for d in answerable]),
         "right_source_cited": mean([1.0 if d["right_source"] else 0.0 for d in answerable]),
@@ -163,9 +167,10 @@ async def evaluate_generation() -> dict[str, Any]:
     ]
     md = (
         "# Generation evaluation (end to end, live API)\n\n"
-        f"API: `{API_URL}` — {len(answerable)} answerable and {len(unanswerable)} unanswerable questions.\n\n"
+        f"API: `{API_URL}` (prompts `{summary['prompts']}`) — {len(answerable)} answerable and "
+        f"{len(unanswerable)} unanswerable questions.\n\n"
         "## Summary\n\n"
-        + markdown_table([{k: v for k, v in summary.items() if k != "agents"}])
+        + markdown_table([{k: v for k, v in summary.items() if k not in ("agents", "prompts")}])
         + f"\nAgents used: {summary['agents']}\n\n"
         "## Per question\n\n" + markdown_table(per_question)
     )
