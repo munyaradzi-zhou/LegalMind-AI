@@ -18,11 +18,13 @@
 #   --tag               Image tag                  (default: current git commit)
 #   --skip-infra        Skip the Bicep deployment
 #   --skip-build        Skip building/pushing images (reuse --tag)
+#   --remote-build      Build the images in the registry (ACR Tasks) instead of local Docker
 #   --seed              Upload sample_data/ through the API after deploying
 #   --skip-smoke        Skip smoke tests
 #
-# Requires: az (logged in), docker, git, curl, openssl. Behind a TLS-inspecting proxy, set
-# CA_BUNDLE=<root CA PEM> so the image builds can reach PyPI.
+# Requires: az (logged in), git, curl, openssl, and docker unless --remote-build. Behind a
+# TLS-inspecting proxy, set
+# CA_BUNDLE=<root CA PEM> for local builds, or use --remote-build.
 # =============================================================================
 set -euo pipefail
 
@@ -33,6 +35,7 @@ LOCATION="eastus2"
 TAG=""
 SKIP_INFRA=false
 SKIP_BUILD=false
+REMOTE_BUILD=false
 SEED=false
 SKIP_SMOKE=false
 
@@ -44,9 +47,10 @@ while [[ $# -gt 0 ]]; do
     --tag) TAG="$2"; shift 2 ;;
     --skip-infra) SKIP_INFRA=true; shift ;;
     --skip-build) SKIP_BUILD=true; shift ;;
+    --remote-build) REMOTE_BUILD=true; shift ;;
     --seed) SEED=true; shift ;;
     --skip-smoke) SKIP_SMOKE=true; shift ;;
-    -h | --help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h | --help) sed -n '2,28p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
@@ -55,7 +59,9 @@ done
 RESOURCE_GROUP="${RESOURCE_GROUP:-rg-legalmind-${ENVIRONMENT}}"
 TAG="${TAG:-$(git -C "${ROOT}" rev-parse --short=12 HEAD)}"
 
-for cmd in az docker git curl; do
+REQUIRED=(az git curl openssl)
+[[ "${REMOTE_BUILD}" == true ]] || REQUIRED+=(docker)
+for cmd in "${REQUIRED[@]}"; do
   command -v "${cmd}" > /dev/null || { echo "Missing required tool: ${cmd}" >&2; exit 1; }
 done
 az account show > /dev/null || { echo "Run 'az login' first." >&2; exit 1; }
@@ -150,7 +156,11 @@ WEB_URL=$(app_url "${WEB_APP}")
 # ---------------------------------------------------------------------------
 step "2/4 Images (tag ${TAG})"
 # ---------------------------------------------------------------------------
-if [[ "${SKIP_BUILD}" == false ]]; then
+if [[ "${SKIP_BUILD}" == false && "${REMOTE_BUILD}" == true ]]; then
+  # Build in the registry (ACR Tasks): no local Docker, and no local network in the way
+  az acr build -r "${REGISTRY}" -t "legalmind-api:${TAG}" -f "${ROOT}/Dockerfile" "${ROOT}" --no-logs -o none
+  az acr build -r "${REGISTRY}" -t "legalmind-frontend:${TAG}" -f "${ROOT}/Dockerfile.frontend" "${ROOT}" --no-logs -o none
+elif [[ "${SKIP_BUILD}" == false ]]; then
   az acr login -n "${REGISTRY}"
   # Behind a TLS-inspecting proxy or antivirus, set CA_BUNDLE to a PEM file with its root CA
   BUILD_ARGS=()

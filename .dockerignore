@@ -24,7 +24,6 @@ htmlcov
 .ruff_cache
 
 # Docker
-Dockerfile
 docker-compose.yml
 .dockerignore
 
@@ -47,3 +46,13 @@ infra/
 
 # Sample data (not needed in container)
 sample_data/
+
+# Not needed in the image (and kept out of remote build uploads)
+corpus/
+notes/
+tests/
+*.pem
+emissions.csv
+.codecarbon-tracker.pid
+IMPROVEMENTS.md
+projects.md
