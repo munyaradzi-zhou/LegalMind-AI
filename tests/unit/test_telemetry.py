@@ -10,7 +10,7 @@ from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 
-from legalmind.telemetry import annotate_request, record_tokens, stage, tracer
+from legalmind.telemetry import annotate_request, record_tokens, remember_request_span, stage, tracer
 from tests.unit.test_access import LAWYER_HUUR, client, search, sessions, settings  # noqa: F401 - fixtures
 
 if TYPE_CHECKING:
@@ -36,6 +36,16 @@ def test_answer_attributes_go_on_the_request_span(spans: InMemorySpanExporter) -
     request = next(s for s in spans.get_finished_spans() if s.name == "POST /api/chat")
     assert request.attributes == {"legalmind.grounding": "unverified", "legalmind.agent": "research",
                                   "legalmind.citations": 3}  # fmt: skip
+
+
+def test_answer_attributes_skip_inner_framework_spans(spans: InMemorySpanExporter) -> None:
+    with tracer.start_as_current_span("POST /api/chat"):
+        remember_request_span()  # the middleware, outside FastAPI's own spans
+        with tracer.start_as_current_span("fastapi.endpoint"):
+            annotate_request(grounding="documents")
+    by_name = {s.name: s.attributes for s in spans.get_finished_spans()}
+    assert by_name["POST /api/chat"] == {"legalmind.grounding": "documents"}
+    assert not by_name["fastapi.endpoint"]
 
 
 def test_model_calls_carry_genai_token_counts(spans: InMemorySpanExporter) -> None:
