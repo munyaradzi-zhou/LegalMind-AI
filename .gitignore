@@ -69,3 +69,6 @@ tests/evaluation/results/
 
 # Generated environment files (scripts/azure-env.sh)
 .env.azure
+
+# Private improvement plan (kept locally)
+IMPROVEMENTS.md
