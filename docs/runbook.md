@@ -43,12 +43,18 @@ Then the exception behind one failed request:
 exceptions | where timestamp > ago(30m) | project timestamp, type, outerMessage, operation_Name | take 20
 ```
 
+The exception is often just `HttpResponseError`; the service's answer (`Forbidden`, `ResourceNotFound`, ...) is in the container's log:
+
+```bash
+az containerapp logs show -g rg-legalmind-<env> -n ca-legalmind-api-<env> --tail 100 --type console | grep -iE "forbidden|error"
+```
+
 **Likely causes and fixes:**
 
 | You see | Cause | Fix |
 |---|---|---|
-| `HttpResponseError: Forbidden` / `AuthorizationFailed` from Search, Cosmos DB, Storage or OpenAI | The app's managed identity lost a role (someone removed it, or a resource was recreated) | Redeploy the infrastructure, which recreates every role assignment: `./scripts/deploy.sh -e <env> --skip-build --tag <current tag>` |
-| `ClientAuthenticationError`, `ManagedIdentityCredential` | The identity isn't attached, or `AZURE_CLIENT_ID` is wrong | Same redeploy |
+| `Forbidden` / `AuthorizationFailed` from Search, Cosmos DB, Storage or OpenAI | The app's managed identity lost a role (someone removed it, or a resource was recreated) | Re-apply the infrastructure, which recreates every role assignment: `gh workflow run cd.yml -f environment=<env> -f reapply_infra=true` (or `./scripts/deploy.sh -e <env> --skip-build --tag <running tag> --reapply-infra`). A plain redeploy is **not** enough: it skips the Bicep when `infra/` is unchanged in git |
+| `ClientAuthenticationError`, `ManagedIdentityCredential` | The identity isn't attached, or `AZURE_CLIENT_ID` is wrong | Same re-apply |
 | `RateLimitError` / 429 | Model throttling: see OpenAI throttling | |
 | One route only, right after a deploy | A bug in the new revision | Roll back |
 
@@ -86,7 +92,7 @@ dependencies
             output_tokens = sum(toint(customDimensions["gen_ai.usage.output_tokens"])) by bin(timestamp, 5m)
 ```
 
-**Likely causes:** a traffic spike, an evaluation run against this environment, or a lowered deployment capacity.
+**Likely causes:** a traffic spike, an evaluation run against this environment (the evaluation gate uses dev's model deployment; it caused real throttling on 20 November), or a lowered deployment capacity.
 
 **Fix:** check the deployment's capacity (`az cognitiveservices account deployment show -g rg-legalmind-<env> -n <openai account> --deployment-name gpt-4.1-mini --query sku`) against `chatCapacity` in `infra/modules/ai-foundry.bicep`; redeploying the infrastructure restores it. If the traffic is real, raise the capacity there.
 
@@ -138,10 +144,13 @@ ContainerAppConsoleLogs_CL
 | project TimeGenerated, Log_s | order by TimeGenerated desc | take 50
 ```
 
+To test this alert: a revision restart doesn't count (it creates new replicas), and SIGKILL to PID 1 from inside the container is ignored; stop the process with SIGTERM:
+`az containerapp exec -g rg-legalmind-<env> -n ca-legalmind-api-<env> --command "python -c __import__('os').kill(1,15)"`.
+
 **Likely causes:** `OOMKilled` → raise memory in `container-apps.bicep`; probe failures right after start → startup is slow (index creation, cold dependencies); a crash loop after a deploy → roll back.
 
 ---
 
 ## After an incident
 
-Write a short postmortem in `docs/postmortems/` (timeline, cause, fix, prevention), and add what you learned to this runbook.
+Write a short postmortem in `docs/postmortems/` (timeline, cause, fix, prevention), and add what you learned to this runbook. Example: [the incident drills of 20 November 2026](postmortems/2026-11-20-incident-drills.md), which tested every alert and corrected this runbook twice.

@@ -196,7 +196,7 @@ if [[ "${REAPPLY_INFRA}" == false && -n "${RUNNING_TAG}" ]] && git -C "${ROOT}" 
 fi
 
 if [[ "${SKIP_INFRA}" == false && "${INFRA_CHANGED}" == true ]]; then
-  echo "Infrastructure changed since ${RUNNING_TAG:-the placeholder} - applying the Bicep template."
+  echo "Applying the Bicep template (infra/ changed since ${RUNNING_TAG:-the placeholder}, or --reapply-infra)."
   deploy_infra "${TAG}" "${TAG}"
 else
   echo "Infrastructure unchanged since ${RUNNING_TAG} - updating the container images only."
