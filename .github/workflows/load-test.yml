@@ -1,0 +1,120 @@
+# Load test against dev: simulated lawyers ramped in stages (tests/load/locustfile.py).
+# Runs from GitHub, next to Azure, so a laptop's network isn't what gets measured.
+# Optionally takes the primary model backend down for the run (its capacity cut to 1K
+# tokens/min, then restored): the AI gateway should fail over with no user-visible errors.
+name: Load test
+
+on:
+  workflow_dispatch:
+    inputs:
+      stages:
+        description: "users:seconds per stage"
+        default: "2:120,5:120,10:180,20:180,30:180"
+      primary_down:
+        description: Throttle the primary model backend during the run (failover drill)
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: load-test-dev # one load test at a time
+
+jobs:
+  load:
+    name: Load test dev
+    if: vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: dev
+    env:
+      RG: rg-legalmind-dev
+      LOAD_STAGES: ${{ inputs.stages }}
+      LOAD_REQUESTS_CSV: load_requests.csv
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Locust
+        run: pip install "locust>=2.32"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Find the API and the primary model account
+        run: |
+          api=$(az containerapp show -g "$RG" -n ca-legalmind-api-dev --query properties.configuration.ingress.fqdn -o tsv)
+          oai=$(az cognitiveservices account list -g "$RG" --query "[?kind=='OpenAI' && !ends_with(name, '-b')].name | [0]" -o tsv)
+          capacity=$(az cognitiveservices account deployment show -g "$RG" -n "$oai" --deployment-name gpt-4.1-mini --query sku.capacity -o tsv)
+          {
+            echo "API_URL=https://$api"
+            echo "OPENAI_PRIMARY=$oai"
+            echo "PRIMARY_CAPACITY=$capacity"
+            echo "STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_ENV"
+          curl -sf --max-time 120 "https://$api/health" > /dev/null # wake a scaled-to-zero API
+
+      - name: Take the primary model backend down
+        if: inputs.primary_down
+        run: |
+          az cognitiveservices account deployment create -g "$RG" -n "$OPENAI_PRIMARY" --deployment-name gpt-4.1-mini \
+            --model-name gpt-4.1-mini --model-version 2025-04-14 --model-format OpenAI \
+            --sku-name GlobalStandard --sku-capacity 1 -o none
+
+      - name: Run the load test
+        run: locust -f tests/load/locustfile.py --headless --host "$API_URL" --only-summary --csv locust
+
+      - name: Restore the primary model backend
+        if: always() && inputs.primary_down
+        run: |
+          az cognitiveservices account deployment create -g "$RG" -n "$OPENAI_PRIMARY" --deployment-name gpt-4.1-mini \
+            --model-name gpt-4.1-mini --model-version 2025-04-14 --model-format OpenAI \
+            --sku-name GlobalStandard --sku-capacity "$PRIMARY_CAPACITY" -o none
+
+      - name: Report
+        if: always()
+        run: |
+          python -m tests.load.report "$LOAD_REQUESTS_CSV" --out report.md
+          ended=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          api_id=$(az containerapp show -g "$RG" -n ca-legalmind-api-dev --query id -o tsv)
+          {
+            echo
+            echo "Primary model backend down: ${{ inputs.primary_down }}. Window: $STARTED to $ended."
+            echo
+            echo "### API replicas (max per minute)"
+            echo
+            echo '| minute (UTC) | replicas |'
+            echo '|---|---|'
+            az monitor metrics list --resource "$api_id" --metric Replicas --aggregation Maximum --interval PT1M \
+              --start-time "$STARTED" --end-time "$ended" \
+              --query "value[0].timeseries[0].data[?maximum!=null].[timeStamp, maximum]" -o tsv |
+              awk -F'\t' '{printf "| %s | %d |\n", substr($1, 12, 5), $2}'
+            echo
+            echo "### Model calls at the AI gateway, by backend"
+            echo
+            echo '| backend | status | calls |'
+            echo '|---|---|---|'
+            az monitor app-insights query -g "$RG" --app appi-legalmind-dev --start-time "$STARTED" --end-time "$ended" \
+              --analytics-query 'dependencies | where cloud_RoleName has "apim" | summarize calls = count() by target, resultCode | order by target asc, calls desc' \
+              --query "tables[0].rows" -o tsv | awk -F'\t' '{printf "| %s | %s | %s |\n", $1, $2, $3}'
+          } >> report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-test-${{ github.run_id }}
+          path: |
+            report.md
+            load_requests.csv
+            locust_*.csv
