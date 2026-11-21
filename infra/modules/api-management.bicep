@@ -306,21 +306,23 @@ resource ingestOperation 'Microsoft.ApiManagement/service/apis/operations@2024-0
 // AI gateway: Azure OpenAI behind APIM
 // ===========================================================================
 
-// One rule per backend (the only number APIM allows): a single 429 or 5xx takes the
-// backend out of the pool for a minute, or for as long as its Retry-After says.
+// One rule per backend (the only number APIM allows): 3 throttled or failed calls within
+// 10 s take the backend out of the pool for 10 s, or for as long as its Retry-After says.
+// The load test of 21 Nov 2026 tripped the first version (1 failure, out for a minute) on
+// both regions at once: 511 calls got a 503 while capacity was back within seconds.
 var circuitBreaker = {
   rules: [
     {
       name: 'throttled-or-failing'
       failureCondition: {
-        count: 1
-        interval: 'PT1M'
+        count: 3
+        interval: 'PT10S'
         statusCodeRanges: [
           { min: 429, max: 429 }
           { min: 500, max: 599 }
         ]
       }
-      tripDuration: 'PT1M'
+      tripDuration: 'PT10S'
       acceptRetryAfter: true
     }
   ]
