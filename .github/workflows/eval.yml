@@ -99,6 +99,14 @@ jobs:
       - name: Answers end to end
         run: python -m tests.evaluation.evaluate_generation
 
+      - name: Live legal sources (reported, not gated)
+        # Needs wetten.overheid.nl and rechtspraak.nl, which this gate doesn't control:
+        # a failure here is reported in the summary but doesn't fail the gate
+        continue-on-error: true
+        run: |
+          python -m tests.evaluation.evaluate_live_sources
+          cat "tests/evaluation/results/$EVAL_RUN_ID/live_sources.md" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Compare with the baseline
         id: gate
         run: |

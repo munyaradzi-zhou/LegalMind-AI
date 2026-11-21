@@ -77,7 +77,7 @@ def api(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Request]:
 
 async def test_tools_are_registered() -> None:
     names = {tool.name for tool in await mcp_server.mcp.list_tools()}
-    assert names == {"search_legal_documents", "ask_legal_question", "ingest_document", "list_agents"}
+    assert names == {"search_legal_documents", "ask_legal_question", "ingest_document", "list_agents", *LIVE}
 
 
 async def test_search_maps_results_and_filters(api: list[httpx.Request]) -> None:
@@ -126,11 +126,13 @@ async def test_list_agents(api: list[httpx.Request]) -> None:
 # ─── Remote mode (as deployed on Azure) ──────────────────────────────────────
 
 KEY = "test-key-0123456789"
+# The public legal sources, in both modes (tests/unit/test_legal_sources.py covers them)
+LIVE = {"get_dutch_law_article", "search_dutch_case_law", "get_dutch_ruling"}
 
 
 async def test_remote_server_leaves_out_ingest() -> None:
     names = {tool.name for tool in await mcp_server.build_server(remote=True).list_tools()}
-    assert names == {"search_legal_documents", "ask_legal_question", "list_agents"}
+    assert names == {"search_legal_documents", "ask_legal_question", "list_agents", *LIVE}
 
 
 def test_empty_api_key_is_refused() -> None:

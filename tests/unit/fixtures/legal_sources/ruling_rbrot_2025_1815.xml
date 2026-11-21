@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="utf-8"?>
+<open-rechtspraak>
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:ecli="https://e-justice.europa.eu/ecli" xmlns:tr="http://tuchtrecht.overheid.nl/" xmlns:eu="http://publications.europa.eu/celex/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:bwb="bwb-dl" xmlns:cvdr="http://decentrale.regelgeving.overheid.nl/cvdr/" xmlns:psi="http://psi.rechtspraak.nl/" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
+    <rdf:Description>
+      <dcterms:identifier>ECLI:NL:RBROT:2025:1815</dcterms:identifier>
+      <dcterms:format>text/xml</dcterms:format>
+      <dcterms:accessRights>public</dcterms:accessRights>
+      <dcterms:modified>2025-02-25T11:23:32</dcterms:modified>
+      <dcterms:issued rdfs:label="Publicatiedatum">2025-02-13</dcterms:issued>
+      <dcterms:publisher resourceIdentifier="http://rechtspraak.nl/">Raad voor de Rechtspraak</dcterms:publisher>
+      <dcterms:language>nl</dcterms:language>
+      <dcterms:creator rdfs:label="Instantie" resourceIdentifier="http://standaarden.overheid.nl/owms/terms/Rechtbank_Rotterdam" scheme="overheid.RechterlijkeMacht">Rechtbank Rotterdam</dcterms:creator>
+      <dcterms:date rdfs:label="Uitspraakdatum">2025-02-13</dcterms:date>
+      <psi:zaaknummer rdfs:label="Zaaknr">11302357 VZ VERZ 24-8044</psi:zaaknummer>
+      <dcterms:type rdf:language="nl" resourceIdentifier="http://psi.rechtspraak.nl/uitspraak">Uitspraak</dcterms:type>
+      <psi:procedure rdf:language="nl" rdfs:label="Procedure" resourceIdentifier="http://psi.rechtspraak.nl/procedure#beschikking">Beschikking</psi:procedure>
+      <dcterms:coverage>NL</dcterms:coverage>
+      <dcterms:spatial rdfs:label="Zittingsplaats">Rotterdam</dcterms:spatial>
+      <dcterms:subject rdfs:label="Rechtsgebied" resourceIdentifier="http://psi.rechtspraak.nl/rechtsgebied#civielRecht_arbeidsrecht">Civiel recht; Arbeidsrecht</dcterms:subject>
+      <dcterms:hasVersion rdfs:label="Vindplaatsen" resourceIdentifier="http://psi.rechtspraak.nl/vindplaats">
+        <rdf:list>
+          <rdf:li>Rechtspraak.nl</rdf:li>
+          <rdf:li>VAAN-AR-Updates.nl 2025-0242</rdf:li>
+          <rdf:li>AR-Updates.nl 2025-0242</rdf:li>
+        </rdf:list>
+      </dcterms:hasVersion>
+    </rdf:Description>
+    <rdf:Description rdf:about="http://deeplink.rechtspraak.nl/uitspraak?id=ECLI:NL:RBROT:2025:1815">
+      <dcterms:identifier>http://deeplink.rechtspraak.nl/uitspraak?id=ECLI:NL:RBROT:2025:1815</dcterms:identifier>
+      <dcterms:format>text/html</dcterms:format>
+      <dcterms:accessRights>public</dcterms:accessRights>
+      <dcterms:modified>2025-02-17T16:43:01</dcterms:modified>
+      <dcterms:issued rdfs:label="Publicatiedatum">2025-02-17</dcterms:issued>
+      <dcterms:publisher resourceIdentifier="http://rechtspraak.nl/">Raad voor de Rechtspraak</dcterms:publisher>
+      <dcterms:language>nl</dcterms:language>
+      <dcterms:title rdf:language="nl">ECLI:NL:RBROT:2025:1815 Rechtbank Rotterdam , 13-02-2025 / 11302357 VZ VERZ 24-8044</dcterms:title>
+      <dcterms:abstract resourceIdentifier="../../rs:inhoudsindicatie" />
+    </rdf:Description>
+  </rdf:RDF>
+  <inhoudsindicatie id="ECLI:NL:RBROT:2025:1815:INH" lang="nl" xml:space="preserve" xmlns="http://www.rechtspraak.nl/schema/rechtspraak-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+      <para>Onterecht ontslag op staande voet. Berusting. Billijke vergoeding en transitievergoeding toegewezen.</para>
+    </inhoudsindicatie>
+  <uitspraak id="ECLI:NL:RBROT:2025:1815:DOC" lang="nl" xml:space="preserve" xmlns="http://www.rechtspraak.nl/schema/rechtspraak-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <uitspraak.info>
+    <bridgehead role="bold">RECHTBANK ROTTERDAM</bridgehead>
+    <para />
+    <parablock>
+      <para>locatie Rotterdam</para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>zaaknummer: 11302357 VZ VERZ 24-8044</para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>datum uitspraak: 5 februari 2025</para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>
+        <emphasis role="bold">Beschikking van de kantonrechter</emphasis>
+      </para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>in de zaak van</para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>
+        <emphasis role="bold">
+          [verzoeker]
+        </emphasis>,</para>
+      <para>woonplaats: Den Haag,</para>
+      <para>verzoeker,</para>
+      <para>gemachtigde: mr. J.M. Eerkes,</para>
+      <para>hierna: Werknemer,</para>
+    </parablock>
+    <para />
+    <parablock>
+      <para>tegen</para>
+    </parablock>
+    <para />
+  </uitspraak.info>
+  <section>
+    <title>
+      <nr>1</nr>T.B. Logistiek V.O.F.,</title>
+    <parablock>
+      <para>vestigingsplaats: Vlaardingen,</para>
+      <para>vertegenwoordigd door [verweerder sub 2] (vennoot),</para>
+    </parablock>
+    <para>2.	<emphasis role="bold">[verweerder sub 2] , medevennoot h.o.d.n. T.B. Logistiek V.O.F.,</emphasis></para>
+    <para>	woonplaats: Vlaardingen,</para>
+    <para>3.	<emphasis role="bold">[verweerder sub 3] , medevennoot h.o.d.n. T.B. Logistiek V.O.F.,</emphasis></para>
+    <parablock>
+      <para>verweerders,</para>
+      <para>in persoon procederend,</para>
+      <para>hierna gezamenlijk te noemen: Werkgever</para>
+    </parablock>
+    <para />
+    <para />
+  </section>
+  <section>
+    <title>
+      <nr>1</nr>De procedure</title>
+    <paragroup>
+      <nr>1.1.</nr>
+      <para>Het dossier bestaat uit de volgende processtukken:</para>
+      <itemizedlist mark="-">
+        <listitem>
+          <para>het verzoekschrift van Werknemer, ontvangen op 10 september 2024, met bijlagen;</para>
+        </listitem>
+        <listitem>
+          <para>de akte wijziging verzoek van Werknemer van 23 oktober 2024, met bijlage.</para>
+        </listitem>
+      </itemizedlist>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>1.2.</nr>
+      <para>Op 10 oktober 2024 is de zaak tijdens een mondelinge behandeling besproken. Daarbij was Werknemer aanwezig met een tolk en zijn gemachtigde. Namens Werkgever was de heer [verweerder sub 2] aanwezig. Na de mondelinge behandeling is Werknemer in de gelegenheid gesteld om het verzoek (naar aanleiding van door Werkgever ter zitting overgelegde loonstroken en de na de zitting aan Werknemer door Werkgever toegezonden loonstrook van december 2023) aan te passen, ook rekening houdend met een loonbetaling die door Werkgever wel was gedaan. Dit heeft Werknemer bij akte vermeerdering/ verandering verzoek van 23 oktober 2024 gedaan. Daarop mocht Werkgever nog reageren. Dit heeft Werkgever niet meer gedaan.</para>
+      <para />
+    </paragroup>
+  </section>
+  <section>
+    <title>
+      <nr>2</nr>De feiten</title>
+    <paragroup>
+      <nr>2.1.</nr>
+      <para>Werknemer is per 20 december 2023 bij Werkgever in dienst getreden. Deze arbeidsovereenkomst zou eindigen op 1 juni 2024. Na 1 juni 2024 heeft Werknemer doorgewerkt, zodat de arbeidsovereenkomst van rechtswege is voortgezet tot 11 november 2024. </para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>2.2.</nr>
+      <para>Werknemer was werkzaam als koerier en verdiende daarmee een gemiddeld brutoloon per maand van € 2.341,79.</para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>2.3.</nr>
+      <para>Op 24 juli 2024 heeft Werkgever aan Werknemer een brief gezonden. In die brief is – voor zover van belang – het volgende opgenomen:</para>
+      <para />
+      <parablock>
+        <para>            	“Geachte heer [naam Werknemer],</para>
+        <para>Bij deze informeer ik u officieel dat TB Logistiek V.O.F. na overleg met U heeft besloten U per datum 17 juli 2024 te ontslaan.</para>
+      </parablock>
+      <para />
+      <parablock>
+        <para>Ondanks dat wij geenszins verplicht zijn een reden van opgaaf te geven sommen wij hieronder toch enkele zaken op;</para>
+        <para>Ondanks herhaaldelijke gesprekken omtrent uitleg van uw verdienste en hoe deze berekent worden bleef u zich beroepen op ongedocumenteerde afspraken en vertelde u overige werknemers dan u niet betaald zou worden etc. Dit soort onjuistheden nemen wij zeer hoog op en nemen wij u kwalijk.</para>
+        <para>Ook wat betreft uw werkzaamheden bent u nooit aan het tempo gaan voldoen die van een</para>
+        <para>pakketbezorger verwacht mag worden.</para>
+        <para>Dan als laatste het aantal bekeuring wat u heeft weten te maken tijdens werktijd en de schades die u met de bedrijfsvoertuigen heeft gemaakt. Zonder in detail te willen treden wens ik aan te geven dat wij voor 4 behoorlijke schades door de verzekeringsmaatschappij aansprakelijk zijn gesteld maar te zwijgen over de schade die onze eigen bussen hebben opgelopen die te begroten zijn op minimaal € 10.000,=</para>
+      </parablock>
+      <para />
+      <parablock>
+        <para>Alle bovengenoemde zaken hebben ons doen besluiten u per aangegeven datum te ontslaan.</para>
+        <para>Erop vertrouwende u hiermede voldoende te hebben geïnformeerd, verblijven wij.”</para>
+      </parablock>
+      <para />
+    </paragroup>
+  </section>
+  <section>
+    <title>
+      <nr>3</nr>Het verzoek en het geschil</title>
+    <paragroup>
+      <nr>3.1.</nr>
+      <para>Werknemer verzoekt Werkgever hoofdelijk te veroordelen:</para>
+      <orderedlist numeration="arabic">
+        <listitem>
+          <para>tot betaling van het netto equivalent van € 9.015,89 bruto aan billijke vergoeding;</para>
+        </listitem>
+        <listitem>
+          <para>tot betaling van het netto equivalent van € 450,18 bruto aan transitievergoeding;</para>
+        </listitem>
+        <listitem>
+          <para>tot betaling van het netto equivalent van € 2.341,79 bruto aan vergoeding wegens onregelmatige opzegging;</para>
+        </listitem>
+        <listitem>
+          <para>tot betaling van € 5.481,21 netto aan achterstallig loon;</para>
+        </listitem>
+        <listitem>
+          <para>tot betaling van € 735,98 netto aan vakantiegeld;</para>
+        </listitem>
+        <listitem>
+          <para>tot uitbetaling van de niet genoten vakantiedagen;</para>
+        </listitem>
+        <listitem>
+          <para>tot betaling van € 8.079,19 aan wettelijke verhoging;</para>
+        </listitem>
+        <listitem>
+          <para>dan wel te gebieden om een positief getuigschrift te verstrekken aan Werknemer;</para>
+        </listitem>
+        <listitem>
+          <para>in de kosten van het geding.</para>
+        </listitem>
+      </orderedlist>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>3.2.</nr>
+      <parablock>
+        <para>Het geschil laat zich als volgt samenvatten.</para>
+        <para>Werknemer stelt (kort gezegd) dat hij, zonder dat daarvoor een geldige reden bestond, op staande voet is ontslagen. Werknemer berust in het ontslag en vraagt om vergoedingen (in plaats van herstel van de arbeidsovereenkomst). Werkgever op zijn beurt stelt dat Werknemer zelf ontslag heeft genomen; de in 2.3 geciteerde brief zou slechts op verzoek van Werknemer zijn opgesteld, zodat hij een uitkering kon aanvragen.</para>
+      </parablock>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>3.3.</nr>
+      <para>Wat partijen verder hebben aangevoerd komt – voor zover van belang – onder de beoordeling aan de orde.</para>
+      <para />
+    </paragroup>
+  </section>
+  <section role="overwegingen">
+    <title>
+      <nr>4</nr>De beoordeling</title>
+    <para />
+    <parablock>
+      <para>
+        <emphasis role="italic">Ontslag</emphasis>
+      </para>
+    </parablock>
+    <paragroup>
+      <nr>4.1.</nr>
+      <para>De eerste vraag is of Werknemer zijn arbeidsovereenkomst zelf heeft opgezegd. Als dat niet het geval is, moet er vanuit worden gegaan dat Werkgever Werknemer ten onrechte heeft ontslagen met de onder 2.3 geciteerde brief. De ontslagredenen die in die brief worden genoemd – mede rekening houdend met ter zitting gegeven toelichting door Werkgever – kunnen het ontslag op staande voet namelijk niet dragen. </para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>4.2.</nr>
+      <para>Werkgever stelt dat Werknemer zelf ontslag heeft genomen, maar die stelling wordt in het geheel niet onderbouwd en deze stelling staat haaks op de tekst van de ontslagbrief. De verklaringen die Werkgever hierover ter zitting heeft gegeven, waren inconsequent en soms zelfs tegenstrijdig. Zo is namens Werkgever eerst verklaard dat Werknemer in de periode rond 17 juli 2024 door Werkgever erop zou zijn gewezen dat hij bij een eigen ontslag geen WW-uitkering zou krijgen. Later is verklaard dat dit al eerder besproken zou zijn (in juni) bij een collega thuis. Op dat moment was de ontslagname volgens de eigen stellingen van Werkgever echter nog helemaal niet aan de orde was. Werkgever stelt ook dat Werknemer – na zijn eigen ontslagname – om de onder 2.3 geciteerde brief zou hebben verzocht, in verband met zijn recht op een uitkering. De brief heeft echter een tegenovergesteld effect; juist als een werknemer op staande voet wordt ontslagen, bestaat geen recht op een uitkering. De redenen genoemd in de brief passen ook niet bij de reden die later ter zitting door Werkgever is gegeven voor het einde van het dienstverband. Partijen zouden volgens de laatste stelling van Werkgever in juli 2024 in samenspraak hebben besloten tot een einde van het dienstverband omdat Werknemer geen nieuwe route wilde rijden. Ook dat is verder helemaal niet onderbouwd.  De conclusie is dat Werkgever zijn stelling dat Werknemer zelf ontslag heeft genomen, niet voldoende heeft onderbouwd.</para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>4.3.</nr>
+      <para>De kantonrechter stelt dus vast dat Werknemer is ontslagen en dat dit ontslag heeft plaatsgevonden in strijd met artikel 7:671 BW. Immers is werknemer per direct ontslagen zonder toestemming van het UWV en zonder dat sprake was van een rechtsgeldige dringende reden voor ontslag op staande voet. Zoals hiervoor is geoordeeld kunnen de redenen genoemd in de brief een ontslag op staande voet niet dragen. De gevolgen daarvan zijn als volgt.</para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Transitievergoeding</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.4.</nr>
+      <para>Nu de arbeidsovereenkomst ten onrechte door Werkgever is opgezegd heeft Werknemer op grond van artikel 7:673 lid 1 sub a sub 1 BW recht op betaling van de transitievergoeding van € 450,18 bruto. Dit bedrag zal dan ook worden toegewezen. </para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Onregelmatige opzegging</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.5.</nr>
+      <para>Omdat Werkgever heeft opgezegd in strijd met de voorschriften uit artikel 7:671 BW, heeft Werknemer recht op een gefixeerde schadevergoeding vergoeding op grond van 7:672 lid 10 BW. Gelet op de duur van het dienstverband geldt een opzegtermijn van een maand. De vergoeding wordt daarom vastgesteld op € 2.341,79, welk bedrag geldt als gemiddeld maandloon. </para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Billijke vergoeding</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.6.</nr>
+      <para>Het verzoek van Werknemer om toekenning van een billijke vergoeding wordt toegewezen, omdat hiervoor is geoordeeld dat de opzegging van de arbeidsovereenkomst niet rechtsgeldig is.<footnote-ref linkend="_5855569e-09d6-4d54-a702-a414e9f6bf81" /> De billijke vergoeding zal worden bepaald op een bedrag van € 4.000,- bruto. Daarbij is onder meer rekening gehouden met de omstandigheid dat het ging om een arbeidsovereenkomst voor bepaalde tijd, die per 11 november 2024 van rechtswege zou eindigen, dus nog een resterende looptijd had van een kleine vier maanden. Verder heeft Werkgever onweersproken gesteld dat Werknemer drie schades heeft gereden aan voertuigen van Werkgever. Naar de kantonrechter begrijpt was de laatste maal kort voordat het ontslag plaatsvond en is door deze schades de verzekeringspremie voor werkgever omhoog gegaan. Hiernaast heeft Werknemer uit hoofde van deze uitspraak ook al recht gekregen op een maandsalaris aan gefixeerde schadevergoeding (zie 4.5) en de wettelijke transitievergoeding (zie 4.4). </para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Loon en wettelijke verhoging</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.7.</nr>
+      <para>Werknemer heeft tot aan het moment dat de arbeidsovereenkomst is opgezegd, te weten 24 juli 2024, recht op loon. Werknemer heeft in zijn nadere berekening in de laatste akte gesteld dat in totaal een bedrag van € 5.481,21 netto onbetaald is gebleven, en dit is door Werkgever niet betwist. Dat bedrag wordt toegewezen. Over dat bedrag wordt ook wettelijke verhoging toegewezen. Werknemer verzoekt wettelijke verhoging over een bedrag van € 16.158,38,-, maar voor toewijzing over dat bedrag heeft Werknemer onvoldoende gesteld. Vast staat namelijk dat niet dat gehele bedrag onbetaald is gebleven. De wettelijke verhoging over het achterstallig loon van € 5.481,21 wordt bepaald op 50%. Dit gaat om een bedrag van € 2.740,60 netto. Voor (ambtshalve) matiging van de wettelijke verhoging bestaat verder geen aanleiding. Werkgever had de overeenkomst niet mogen opzeggen en Werkgever heeft (ook al in de periode vóór de opzegging) het loon meermaals veel te laat betaald.</para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Vakantiegeld</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.8.</nr>
+      <para>Het verzoek tot betaling aan Werknemer van € 735,98 netto aan vakantiegeld wordt ook toegewezen, omdat dat verzoek door Werkgever niet is weersproken.</para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Vakantiedagen </emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.9.</nr>
+      <para>Nu het dienstverband is geëindigd moet Werkgever over te gaan tot uitbetaling van niet-genoten vakantiedagen. Ook dit verzoek wordt toegewezen, omdat Werkgever dat verzoek niet heeft weersproken.</para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Getuigschrift</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.10.</nr>
+      <para>Tegen het verzoek om een positief getuigschrift te verstrekken is geen afzonderlijk verweer gevoerd, zodat dit deel van het verzoek ook zal worden toegewezen. </para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Proceskosten</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.11.</nr>
+      <para>Werkgever krijgt ongelijk en moet daarom de proceskosten betalen. Die kosten bestaan aan de kant van Werknemer uit € 87,- aan griffierecht, € 814,- aan salaris voor haar gemachtigde van € 135,- aan nakosten. Dit is bij elkaar € 1.036,-. Hier kan nog een bedrag bijkomen als deze beschikking door een deurwaarder uitgereikt moet worden. </para>
+      <para />
+      <parablock>
+        <para>
+          <emphasis role="italic">Uitvoerbaarheid bij voorraad</emphasis>
+        </para>
+      </parablock>
+    </paragroup>
+    <paragroup>
+      <nr>4.12.</nr>
+      <para>Deze beschikking wordt uitvoerbaar bij voorraad verklaard. Dit betekent dat als deze zaak aan een hogere rechter wordt voorgelegd, in afwachting van de uitspraak van die hogere rechter afgedwongen kan worden dat aan de veroordelingen in deze beschikking wordt voldaan. </para>
+      <para />
+    </paragroup>
+  </section>
+  <section role="beslissing">
+    <title>
+      <nr>5</nr>De beslissing</title>
+    <para>De kantonrechter:</para>
+    <para />
+    <paragroup>
+      <nr>5.1.</nr>
+      <para>veroordeelt Werkgever hoofdelijk tot betaling aan Werknemer:</para>
+      <orderedlist numeration="arabic">
+        <listitem>
+          <para>het netto equivalent van € 4.000,- bruto aan billijke vergoeding;</para>
+        </listitem>
+        <listitem>
+          <para>het netto equivalent van € 450,18 bruto aan transitievergoeding;</para>
+        </listitem>
+        <listitem>
+          <para>het netto equivalent van € 2.341,79 bruto aan vergoeding wegens onregelmatige opzegging;</para>
+        </listitem>
+        <listitem>
+          <para>€ 5.481,21 netto aan achterstallig loon;</para>
+        </listitem>
+        <listitem>
+          <para>€ 735,98 netto aan vakantiegeld;</para>
+        </listitem>
+        <listitem>
+          <para>de niet genoten vakantiedagen;</para>
+        </listitem>
+        <listitem>
+          <para>€ 2.740,60 netto aan wettelijke verhoging; </para>
+        </listitem>
+      </orderedlist>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>5.2.</nr>
+      <para>gebiedt Werkgever om een positief getuigschrift te verstrekken aan Werknemer;</para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>5.3.</nr>
+      <para>veroordeelt Werkgever in de proceskosten, die aan de kant van Werknemer worden begroot op € 1.036,-;</para>
+      <para />
+    </paragroup>
+    <paragroup>
+      <nr>5.4.</nr>
+      <para>verklaart deze beschikking uitvoerbaar bij voorraad en wijst wat meer of anders is verzocht af.</para>
+      <para />
+      <parablock>
+        <para>Deze beschikking is gegeven door mr. C.J. Frikkee en in het openbaar uitgesproken.</para>
+        <para>527</para>
+      </parablock>
+    </paragroup>
+  </section>
+  <footnote id="_5855569e-09d6-4d54-a702-a414e9f6bf81" label="1">
+    <para> Artikel 7:681 lid 1, onderdeel a, BW.</para>
+  </footnote>
+</uitspraak>
+</open-rechtspraak>

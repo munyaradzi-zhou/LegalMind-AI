@@ -28,7 +28,8 @@ AZURE_OPENAI_ENDPOINT=$(ai "kind=='OpenAI' && !ends_with(name,'-b')")
 AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4.1-mini
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-large
 AZURE_SEARCH_ENDPOINT=https://${SEARCH}.search.windows.net
-AZURE_LANGUAGE_ENDPOINT=$(ai "starts_with(name,'ais-')")
+# ais-legalmind: the resource group can also hold other projects' ais- accounts
+AZURE_LANGUAGE_ENDPOINT=$(ai "starts_with(name,'ais-legalmind')")
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=$(ai "kind=='FormRecognizer'")
 AZURE_CONTENT_UNDERSTANDING_ENDPOINT=$(ai "starts_with(name,'cu-')")
 AZURE_CONTENT_SAFETY_ENDPOINT=$(ai "kind=='ContentSafety'")
