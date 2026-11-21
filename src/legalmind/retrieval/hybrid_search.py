@@ -8,11 +8,13 @@ optional semantic re-ranking.
 from __future__ import annotations
 
 import re
+import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import structlog
+from azure.core.exceptions import HttpResponseError
 
 from legalmind.access import Principal, combine_filters, current_principal
 from legalmind.config import get_settings
@@ -187,6 +189,17 @@ _DEFAULT_SELECT: list[str] = [
 # Hybrid search engine
 # ---------------------------------------------------------------------------
 
+# When the semantic ranker's quota is used up (the free plan allows 1,000 queries a month),
+# AI Search refuses semantic queries. Search then runs without it, for an hour before trying
+# again, instead of failing every search and every chat.
+SEMANTIC_RETRY_SECONDS = 3600
+_semantic_unavailable_until = 0.0
+
+
+def _semantic_quota_exhausted(exc: HttpResponseError) -> bool:
+    message = str(exc).lower()
+    return "semantic" in message and ("exceeded" in message or "quota" in message or "billing" in message)
+
 
 class HybridSearchEngine:
     """Orchestrates hybrid (vector + keyword + semantic) retrieval.
@@ -263,20 +276,17 @@ class HybridSearchEngine:
         # 2. Generate the query embedding
         query_vector = await self._openai.generate_single_embedding(query)
 
-        # 3. Determine semantic configuration
-        semantic_config = "legal-semantic-config" if enable_semantic_ranking else None
-        query_type = "semantic" if enable_semantic_ranking else "simple"
-
-        # 4. Execute hybrid search via SearchService
-        raw_results = await self._search.hybrid_search(
-            query,
-            query_vector=query_vector,
-            filters=odata_filter,
-            top=top,
-            select=select or _DEFAULT_SELECT,
-            semantic_configuration=semantic_config,
-            query_type=query_type,
-        )
+        # 3-4. Execute hybrid search via SearchService, semantically re-ranked when available
+        global _semantic_unavailable_until  # one switch for the whole process
+        semantic = enable_semantic_ranking and time.monotonic() >= _semantic_unavailable_until
+        try:
+            raw_results = await self._run_hybrid(query, query_vector, odata_filter, top, select, semantic=semantic)
+        except HttpResponseError as exc:
+            if not (semantic and _semantic_quota_exhausted(exc)):
+                raise
+            _semantic_unavailable_until = time.monotonic() + SEMANTIC_RETRY_SECONDS
+            logger.warning("semantic_ranking_unavailable", reason="quota exhausted", retry_in_s=SEMANTIC_RETRY_SECONDS)
+            raw_results = await self._run_hybrid(query, query_vector, odata_filter, top, select, semantic=False)
 
         # 5. Convert to typed results
         results = [SearchResult.from_raw(doc) for doc in raw_results]
@@ -294,6 +304,26 @@ class HybridSearchEngine:
         )
 
         return results
+
+    async def _run_hybrid(
+        self,
+        query: str,
+        query_vector: list[float],
+        odata_filter: str | None,
+        top: int,
+        select: list[str] | None,
+        *,
+        semantic: bool,
+    ) -> list[dict[str, Any]]:
+        return await self._search.hybrid_search(
+            query,
+            query_vector=query_vector,
+            filters=odata_filter,
+            top=top,
+            select=select or _DEFAULT_SELECT,
+            semantic_configuration="legal-semantic-config" if semantic else None,
+            query_type="semantic" if semantic else "simple",
+        )
 
     async def keyword_search(
         self,

@@ -56,6 +56,7 @@ az containerapp logs show -g rg-legalmind-<env> -n ca-legalmind-api-<env> --tail
 | `Forbidden` / `AuthorizationFailed` from Search, Cosmos DB, Storage or OpenAI | The app's managed identity lost a role (someone removed it, or a resource was recreated) | Re-apply the infrastructure, which recreates every role assignment: `gh workflow run cd.yml -f environment=<env> -f reapply_infra=true` (or `./scripts/deploy.sh -e <env> --skip-build --tag <running tag> --reapply-infra`). A plain redeploy is **not** enough: it skips the Bicep when `infra/` is unchanged in git |
 | `ClientAuthenticationError`, `ManagedIdentityCredential` | The identity isn't attached, or `AZURE_CLIENT_ID` is wrong | Same re-apply |
 | `RateLimitError` / 429 | Model throttling: see OpenAI throttling | |
+| `Free Query Semantic Usage exceeded for the month` | The semantic ranker's free plan (1,000 queries a month) is used up. Since 21 Nov 2026 search falls back to plain hybrid search for an hour at a time (log event `semantic_ranking_unavailable`), so this should only show as slightly weaker ranking, not errors | Nothing urgent; it resets on the 1st. To keep semantic ranking, switch the service to the standard plan (`semanticSearch` in `infra/modules/ai-search.bicep`, about €1 per 1,000 queries after the free ones) |
 | One route only, right after a deploy | A bug in the new revision | Roll back |
 
 ---
