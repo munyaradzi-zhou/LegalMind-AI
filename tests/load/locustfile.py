@@ -5,6 +5,8 @@ Run headless (the load-test workflow does this from GitHub, next to Azure):
     LOAD_STAGES="2:120,5:120,10:180,20:180,30:180" \\
     locust -f tests/load/locustfile.py --headless --host https://<api> --only-summary
 
+Behind a TLS-inspecting proxy, set LOAD_CA_BUNDLE to a PEM of trusted roots.
+
 Each simulated user is a different lawyer (``X-Dev-User: load-<n>``, sign-in off on dev) on
 the four matters, so the AI gateway counts tokens per user as it would for real users.
 Every request is also written to ``LOAD_REQUESTS_CSV`` for tests/load/report.py, which
@@ -56,6 +58,8 @@ class Lawyer(HttpUser):
     wait_time = between(5, 15)  # reading the answer before the next question
 
     def on_start(self) -> None:
+        # Behind a TLS-inspecting proxy (antivirus HTTPS scanning): LOAD_CA_BUNDLE=<root CAs PEM>
+        self.client.verify = os.getenv("LOAD_CA_BUNDLE") or True
         self.headers = {"X-Dev-User": f"load-{next(_ids)}", "X-Dev-Roles": "Lawyer", "X-Dev-Matters": MATTERS}
 
     @task
