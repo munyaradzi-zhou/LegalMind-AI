@@ -1,0 +1,70 @@
+{
+  "description": "Questions that need the live legal sources (L7): the current text of an article from wetten.overheid.nl, or published rulings from rechtspraak.nl. must_contain lists facts from the official texts as of November 2026 (each a list of accepted variants); cite is what the answer must name; host is where the cited source must come from.",
+  "version": 1,
+  "queries": [
+    {
+      "id": "W01",
+      "tool": "get_article",
+      "question": "Wat zegt artikel 7:271 BW vandaag?",
+      "must_contain": [["bepaalde tijd"], ["opgezegd", "opzeggen", "opzegging"]],
+      "cite": ["7:271"],
+      "host": "wetten.overheid.nl"
+    },
+    {
+      "id": "W02",
+      "tool": "get_article",
+      "question": "Geef de huidige tekst van artikel 6:162 BW over de onrechtmatige daad.",
+      "must_contain": [["onrechtmatige daad"], ["schade"], ["toegerekend", "toerekenen", "toe te rekenen"]],
+      "cite": ["6:162"],
+      "host": "wetten.overheid.nl"
+    },
+    {
+      "id": "W03",
+      "tool": "get_article",
+      "question": "Welke gronden voor ontslag noemt artikel 7:669 BW, en wat geldt voor herplaatsing?",
+      "must_contain": [["redelijke grond"], ["herplaatsing", "herplaatst"]],
+      "cite": ["7:669"],
+      "host": "wetten.overheid.nl"
+    },
+    {
+      "id": "W04",
+      "tool": "get_article",
+      "question": "Wat bepaalt artikel 8:69 van de Algemene wet bestuursrecht?",
+      "must_contain": [["beroepschrift"], ["rechtsgronden"]],
+      "cite": ["8:69"],
+      "host": "wetten.overheid.nl"
+    },
+    {
+      "id": "W05",
+      "tool": "get_article",
+      "question": "Welke straf staat er volgens artikel 310 van het Wetboek van Strafrecht op diefstal?",
+      "must_contain": [["diefstal"], ["vier jaren", "vier jaar"], ["vierde categorie"]],
+      "cite": ["310"],
+      "host": "wetten.overheid.nl"
+    },
+    {
+      "id": "R01",
+      "tool": "search_case_law",
+      "question": "Zoek recente uitspraken van de Hoge Raad over de billijke vergoeding bij ontslag.",
+      "must_contain": [["billijke vergoeding"]],
+      "cite": ["ECLI:NL:HR:"],
+      "host": "uitspraken.rechtspraak.nl"
+    },
+    {
+      "id": "R02",
+      "tool": "search_case_law",
+      "question": "Welke recente rechtspraak is er over huurprijsvermindering wegens gebreken aan een woning?",
+      "must_contain": [["gebrek", "gebreken"]],
+      "cite": ["ECLI:NL:"],
+      "host": "uitspraken.rechtspraak.nl"
+    },
+    {
+      "id": "R03",
+      "tool": "get_ruling",
+      "question": "Wat heeft de rechter beslist in ECLI:NL:RBROT:2025:1815?",
+      "must_contain": [["billijke vergoeding"], ["transitievergoeding"], ["staande voet"]],
+      "cite": ["ECLI:NL:RBROT:2025:1815"],
+      "host": "uitspraken.rechtspraak.nl"
+    }
+  ]
+}

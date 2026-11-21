@@ -27,6 +27,7 @@ from legalmind.retrieval.query_rewriter import QueryRewriter
 from legalmind.services.audit_logger import AuditLogger
 from legalmind.services.azure_openai import AzureOpenAIService
 from legalmind.services.content_safety import PiiDetectionResult, apply_redaction
+from legalmind.sources import live
 from legalmind.telemetry import annotate_request, stage
 
 if TYPE_CHECKING:
@@ -145,6 +146,8 @@ async def chat(
     # Build context with citation markers [1], [2], ...
     context_result = context_builder.build(search_results)
     context = context_result.context
+    # Laws and rulings the agent looks up live are numbered on from the passages
+    live_sources = live.start(first_number=max((c.number for c in context_result.citations), default=0) + 1)
 
     # Route to the appropriate specialist agent. The retrieved excerpts and recent
     # conversation turns are passed as additional context for the agent. The newest
@@ -183,6 +186,10 @@ async def chat(
         agent_result.content = "Er is een fout opgetreden bij het verwerken van uw vraag. Probeer het opnieuw."
 
     agent_response = {"content": agent_result.content, "agent_name": agent_result.agent_name}
+
+    # What the answer may rest on: the live sources the agent looked up for this question
+    # (first, so a long context can't cut them off) and the retrieved passages
+    context = "\n\n".join(part for part in (live_sources.context(), context) if part)
 
     # ── Post-flight guardrails: check AI output ──────────────────────
     with stage("guardrails.output"):
@@ -236,6 +243,21 @@ async def chat(
                 chunk_content=strip_context_header(source.content) if source else "",
                 page_number=c.page_number,
                 relevance_score=(source.reranker_score or source.search_score) if source else 0.0,
+            )
+        )
+
+    for live_source in live_sources.sources:
+        if shown is not None and live_source.number not in shown:
+            continue
+        citations.append(
+            Citation(
+                index=live_source.number,
+                document_id=live_source.identifier,
+                document_title=live_source.title,
+                chunk_content=live_source.text,
+                page_number=None,
+                relevance_score=1.0,
+                url=live_source.url,
             )
         )
 
