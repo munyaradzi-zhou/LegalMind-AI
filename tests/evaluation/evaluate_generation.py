@@ -54,6 +54,8 @@ Return JSON only, with these keys:
 - "unsupported_claims": list of short strings, each a claim not supported by the sources (empty if none).
 - "answers_question": true if the answer addresses what was asked.
 - "says_not_in_documents": true if the answer states that the documents do not contain the requested information.
+  Also true when it says the requested item isn't there and offers a related item that it clearly
+  labels as something else (e.g. "the only policy number is that of a different insurance").
 """
 
 
