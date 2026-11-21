@@ -167,16 +167,16 @@ step "2/4 Images (tag ${TAG})"
 if [[ "${SKIP_BUILD}" == false && "${REMOTE_BUILD}" == true ]]; then
   # Build in the registry (ACR Tasks): no local Docker, and no local network in the way
   az acr build -r "${REGISTRY}" -t "legalmind-api:${TAG}" -f "${ROOT}/Dockerfile" "${ROOT}" --no-logs -o none
-  az acr build -r "${REGISTRY}" -t "legalmind-frontend:${TAG}" -f "${ROOT}/Dockerfile.frontend" "${ROOT}" --no-logs -o none
+  az acr build -r "${REGISTRY}" -t "legalmind-web:${TAG}" -f "${ROOT}/web/Dockerfile" "${ROOT}/web" --no-logs -o none
 elif [[ "${SKIP_BUILD}" == false ]]; then
   az acr login -n "${REGISTRY}"
   # Behind a TLS-inspecting proxy or antivirus, set CA_BUNDLE to a PEM file with its root CA
   BUILD_ARGS=()
   [[ -n "${CA_BUNDLE:-}" ]] && BUILD_ARGS=(--secret "id=ca_cert,src=${CA_BUNDLE}")
   docker build "${BUILD_ARGS[@]}" -t "${LOGIN_SERVER}/legalmind-api:${TAG}" -f "${ROOT}/Dockerfile" "${ROOT}"
-  docker build "${BUILD_ARGS[@]}" -t "${LOGIN_SERVER}/legalmind-frontend:${TAG}" -f "${ROOT}/Dockerfile.frontend" "${ROOT}"
+  docker build -t "${LOGIN_SERVER}/legalmind-web:${TAG}" "${ROOT}/web"
   docker push "${LOGIN_SERVER}/legalmind-api:${TAG}"
-  docker push "${LOGIN_SERVER}/legalmind-frontend:${TAG}"
+  docker push "${LOGIN_SERVER}/legalmind-web:${TAG}"
 else
   echo "Skipped (deploying existing tag ${TAG})."
 fi
@@ -201,7 +201,7 @@ if [[ "${SKIP_INFRA}" == false && "${INFRA_CHANGED}" == true ]]; then
 else
   echo "Infrastructure unchanged since ${RUNNING_TAG} - updating the container images only."
   az containerapp update -g "${RESOURCE_GROUP}" -n "${API_APP}" --image "${LOGIN_SERVER}/legalmind-api:${TAG}" -o none
-  az containerapp update -g "${RESOURCE_GROUP}" -n "${WEB_APP}" --image "${LOGIN_SERVER}/legalmind-frontend:${TAG}" -o none
+  az containerapp update -g "${RESOURCE_GROUP}" -n "${WEB_APP}" --image "${LOGIN_SERVER}/legalmind-web:${TAG}" -o none
   if az containerapp show -g "${RESOURCE_GROUP}" -n "${MCP_APP}" -o none 2> /dev/null; then
     az containerapp update -g "${RESOURCE_GROUP}" -n "${MCP_APP}" --image "${LOGIN_SERVER}/legalmind-api:${TAG}" -o none
   fi
@@ -231,11 +231,24 @@ for _ in $(seq 1 36); do
   sleep 5
 done
 
+# With sign-in on, the smoke tests and the seed script call the API with a token of whoever
+# deploys: a user (delegated, through the Azure CLI) or the CD identity (it needs the Service
+# app role: scripts/setup_entra.sh --assign <its object id> Service)
+API_TOKEN=""
+if [[ -n "${AZURE_API_AUDIENCE:-}" ]]; then
+  API_TOKEN=$(az account get-access-token --scope "api://${AZURE_API_AUDIENCE%%,*}/.default" --query accessToken -o tsv)
+fi
+export API_TOKEN
+
 if [[ "${SEED}" == true ]]; then
   APP_URL="${API_URL}" bash "${ROOT}/scripts/seed-data.sh"
 fi
 if [[ "${SKIP_SMOKE}" == false ]]; then
   APP_URL="${API_URL}" bash "${ROOT}/scripts/run-smoke-tests.sh"
+  # The web front end: its runtime settings are served and point at this API
+  curl -sf "${WEB_URL}/config.json" | grep -q "\"apiUrl\":\"${API_URL}\"" \
+    || { echo "Web front end: /config.json is missing or points elsewhere" >&2; exit 1; }
+  echo "Web front end: config.json points at ${API_URL}"
   if [[ -n "${MCP_URL}" ]]; then
     MCP_BASE="${MCP_URL%/mcp}"
     for _ in $(seq 1 36); do

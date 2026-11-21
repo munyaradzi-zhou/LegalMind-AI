@@ -129,7 +129,7 @@ class Settings(BaseSettings):
     # App settings
     app_env: str = "development"
     app_log_level: str = "INFO"
-    app_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:8501"])
+    app_cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])  # web/ dev server
 
     # Rewrite chat questions with the LLM before searching (QUERY_REWRITING_ENABLED).
     # Off by default: the retrieval evaluation showed no gain for ~1.3 s extra latency.

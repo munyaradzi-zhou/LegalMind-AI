@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import uuid
@@ -31,7 +32,9 @@ from legalmind.sources import live
 from legalmind.telemetry import annotate_request, stage
 
 if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
+    from collections.abc import AsyncGenerator, Awaitable, Callable
+
+    Progress = Callable[[str], Awaitable[None]]  # told each pipeline stage as it starts
 
 logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
@@ -51,12 +54,24 @@ async def chat(
     4. Route to the appropriate specialist agent
     5. Return response with citations
 
-    Supports streaming via Server-Sent Events when `stream=True`.
+    With `stream=True` the reply is a Server-Sent Events stream: `status` events while the
+    pipeline runs (checking the question, searching, answering, checking the answer), then
+    the answer in `message` events, the last one with the citations and grounding label.
     """
     # The caller is whoever signed the request in, never what the body claims.
     request.user_id = principal.user_id
     logger.info("chat_request", user_id=request.user_id, session_id=request.session_id, stream=request.stream)
+    if request.stream:
+        return EventSourceResponse(_stream(request, principal))
+    return await _answer(request, principal, _no_progress)
 
+
+async def _no_progress(_: str) -> None:
+    return None
+
+
+async def _answer(request: ChatRequest, principal: Principal, progress: Progress) -> ChatResponse:
+    """The pipeline: guardrails, retrieval, the agent, the output check. Reports each stage to ``progress``."""
     # Initialize services
     session_manager = SessionManager()
     openai_service = AzureOpenAIService()
@@ -77,6 +92,7 @@ async def chat(
         raise HTTPException(status_code=404, detail="Session not found")
 
     # ── Pre-flight guardrails: check user input ──────────────────────
+    await progress("checking_question")
     with stage("guardrails.input"):
         input_check = await guardrails.check_input(request.message)
 
@@ -135,6 +151,7 @@ async def chat(
             query = (await query_rewriter.rewrite_query(request.message)).rewritten
 
         # Retrieve relevant context (optionally limited to specific documents)
+        await progress("searching")
         filters = SearchFilters(document_ids=request.document_ids) if request.document_ids else None
         with stage("retrieval") as span:
             search_results = await search_engine.hybrid_search(query, filters=filters, top=8)
@@ -163,6 +180,7 @@ async def chat(
     if recent_turns:
         additional_context["conversation_history"] = recent_turns
 
+    await progress("answering")
     with stage("agent"):
         orchestrator_response = await orchestrator.process_message(
             request.message,
@@ -192,6 +210,7 @@ async def chat(
     context = "\n\n".join(part for part in (live_sources.context(), context) if part)
 
     # ── Post-flight guardrails: check AI output ──────────────────────
+    await progress("checking_answer")
     with stage("guardrails.output"):
         output_check = await guardrails.check_output(agent_response["content"], context, question=request.message)
 
@@ -287,18 +306,6 @@ async def chat(
         blocked=output_check.verdict == GuardrailVerdict.BLOCK,
     )
 
-    if request.stream:
-        return EventSourceResponse(
-            _stream_response(
-                response_content,
-                session_id,
-                agent_response.get("agent_name", "orchestrator"),
-                citations,
-                grounding,
-                groundedness_score,
-            ),
-        )
-
     return ChatResponse(
         message=response_content,
         session_id=session_id,
@@ -347,40 +354,42 @@ def grounding_status(context: str, groundedness: GroundednessResult | None) -> t
     return "documents", groundedness.score
 
 
-async def _stream_response(
-    content: str,
-    session_id: str,
-    agent_name: str,
-    citations: list[Citation],
-    grounding: Grounding,
-    groundedness_score: float | None,
-) -> AsyncGenerator[dict[str, Any], None]:
-    """Stream the response as SSE events.
+async def _stream(request: ChatRequest, principal: Principal) -> AsyncGenerator[dict[str, Any], None]:
+    """Run the pipeline and stream its progress, then the answer, as SSE events."""
+    steps: asyncio.Queue[str | None] = asyncio.Queue()
 
-    Yields:
-        SSE events with chunks of the response.
-    """
-    # Stream the content word by word
-    words = content.split(" ")
-    for i, word in enumerate(words):
-        chunk = word + (" " if i < len(words) - 1 else "")
-        yield {
-            "event": "message",
-            "data": json.dumps({"content": chunk, "done": False}),
-        }
+    async def progress(step: str) -> None:
+        await steps.put(step)
 
-    # Final event with metadata
+    task = asyncio.create_task(_answer(request, principal, progress))
+    task.add_done_callback(lambda _: steps.put_nowait(None))
+    while (step := await steps.get()) is not None:
+        yield {"event": "status", "data": json.dumps({"step": step})}
+
+    try:
+        reply = task.result()
+    except HTTPException as exc:
+        yield {"event": "error", "data": json.dumps({"status": exc.status_code, "detail": exc.detail})}
+        return
+    except Exception:
+        logger.exception("chat_stream_failed")
+        yield {"event": "error", "data": json.dumps({"status": 500, "detail": "The answer could not be completed."})}
+        return
+
+    # The answer is complete (and checked) before it is sent: stream it in short pieces
+    for piece in re.findall(r"\S+\s*|\s+", reply.message):
+        yield {"event": "message", "data": json.dumps({"content": piece, "done": False})}
     yield {
         "event": "message",
         "data": json.dumps(
             {
                 "content": "",
                 "done": True,
-                "session_id": session_id,
-                "agent_name": agent_name,
-                "citations": [c.model_dump() for c in citations],
-                "grounding": grounding,
-                "groundedness_score": groundedness_score,
+                "session_id": reply.session_id,
+                "agent_name": reply.agent_name,
+                "citations": [c.model_dump() for c in reply.citations],
+                "grounding": reply.grounding,
+                "groundedness_score": reply.groundedness_score,
             }
         ),
     }
