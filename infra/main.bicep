@@ -52,7 +52,7 @@ param mcpEnabled bool = false
 @description('Who gets the alert emails (defaults to the API Management publisher email).')
 param alertEmail string = apimPublisherEmail
 
-@description('Put the data services behind private endpoints in a VNet and turn off their public access. About €50 a month more; off by default.')
+@description('Put the data services behind private endpoints in a VNet and turn off their public access. About €60 a month more (9 private endpoints); off by default.')
 param networkIsolation bool = false
 
 @description('Audiences the API accepts in Entra ID tokens (from scripts/setup_entra.sh). Empty = sign-in off.')
