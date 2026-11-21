@@ -20,6 +20,12 @@ from legalmind.sources._http import SourceUnavailableError
 
 logger = structlog.get_logger(__name__)
 
+# Rulings are published anonymised: said with every one, so a precedent isn't taken for a client's case
+ANONYMISED = (
+    "Geanonimiseerde uitspraak: the parties are not named. Not the case of anyone in the user's documents "
+    "unless those documents cite this ECLI."
+)
+
 UNAVAILABLE = (
     "SOURCE UNAVAILABLE: {source} did not answer. Do not quote this {kind} from memory; "
     "tell the user the live source could not be reached and answer only from the documents."
@@ -90,7 +96,12 @@ class LegalSourcesTool:
         if not rulings:
             return "No matching published rulings found. Try other keywords, or a court or area of law."
         return "\n\n---\n\n".join(
-            _cite(r.ecli, f"{r.court}, {r.decided} ({r.case_number})", f"Samenvatting: {r.summary}", r.url)
+            _cite(
+                r.ecli,
+                f"{r.court}, {r.decided} ({r.case_number})",
+                f"{ANONYMISED}\nSamenvatting: {r.summary}",
+                r.url,
+            )
             for r in rulings
         )
 
@@ -109,5 +120,5 @@ class LegalSourcesTool:
             return f"NOT FOUND: {exc}"
         except SourceUnavailableError:
             return UNAVAILABLE.format(source="rechtspraak.nl", kind="ruling")
-        text = f"Samenvatting: {ruling.summary}\n\nUitspraak: {ruling.text}"
+        text = f"{ANONYMISED}\nSamenvatting: {ruling.summary}\n\nUitspraak: {ruling.text}"
         return _cite(ruling.ecli, f"{ruling.court}, {ruling.decided} ({ruling.case_number})", text, ruling.url)
