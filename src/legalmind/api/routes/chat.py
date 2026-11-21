@@ -187,8 +187,9 @@ async def chat(
 
     agent_response = {"content": agent_result.content, "agent_name": agent_result.agent_name}
 
-    # What the answer may rest on: the retrieved passages and the live sources the agent fetched
-    context = "\n\n".join(part for part in (context, live_sources.context()) if part)
+    # What the answer may rest on: the live sources the agent looked up for this question
+    # (first, so a long context can't cut them off) and the retrieved passages
+    context = "\n\n".join(part for part in (live_sources.context(), context) if part)
 
     # ── Post-flight guardrails: check AI output ──────────────────────
     with stage("guardrails.output"):

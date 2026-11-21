@@ -21,6 +21,9 @@ def render_citations(citations: list[dict]) -> None:
                 st.markdown(f"**[{citation['index']}]** {citation.get('document_title', '')}")
                 st.caption(citation.get("chunk_content", "")[:300])
             with col2:
+                if citation.get("url"):  # a live source: link to the official text, cite by its ID
+                    st.markdown(f"[{citation.get('document_id', 'Source')}]({citation['url']})")
+                    continue
                 if citation.get("page_number"):
                     st.caption(f"Page {citation['page_number']}")
                 if citation.get("relevance_score"):

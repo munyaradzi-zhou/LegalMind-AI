@@ -28,6 +28,8 @@ from legalmind.services.content_safety import (
 
 logger = structlog.get_logger(__name__)
 
+GROUNDEDNESS_CONTEXT_CHARS = 24_000
+
 
 # ─── Data models ─────────────────────────────────────────────────────────────
 
@@ -324,7 +326,9 @@ class ResponsibleAIGuardrails:
 
         prompt = _GROUNDEDNESS_PROMPT.format(
             question=question[:1000] or "(not provided)",
-            context=context[:8000],  # Limit context to fit in prompt
+            # 8 retrieved passages plus the laws and rulings looked up live; gpt-4.1-mini reads far
+            # more, but the check should stay quick (it was 8,000, which cut off the later sources)
+            context=context[:GROUNDEDNESS_CONTEXT_CHARS],
             response=response[:4000],
         )
 
