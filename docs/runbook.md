@@ -109,7 +109,7 @@ dependencies
 
 **Likely causes:** a traffic spike, a load test, or a lowered deployment capacity. Evaluations use their own deployment (`gpt-4.1-mini-eval`) since L6, so they no longer throttle the app.
 
-**Fix:** check the deployment's capacity (`az cognitiveservices account deployment show -g rg-legalmind-<env> -n <openai account> --deployment-name gpt-4.1-mini --query sku`) against `chatCapacity` in `infra/parameters/<env>.bicepparam`; `deploy.sh --reapply-infra` restores it. If the traffic is real, raise the capacity there (Global Standard capacity costs nothing until used). If both regions throttle, one user may be using it all: lower `userTokensPerMinute`.
+**Fix:** check the deployment's capacity (`az cognitiveservices account deployment show -g rg-legalmind-<env> -n <openai account> --deployment-name gpt-4.1-mini --query sku`) against `chatCapacity` in `infra/parameters/<env>.bicepparam`; `deploy.sh --reapply-infra` restores it. If the traffic is real, raise the capacity there (Global Standard capacity costs nothing until used). A capacity change takes effect only after a few minutes (about 6 on 21 Nov 2026), so after raising it, wait before you judge the result. If both regions throttle, one user may be using it all: lower `userTokensPerMinute`.
 
 ---
 
