@@ -16,7 +16,7 @@ from legalmind import __version__
 from legalmind.api.middleware.auth import EntraIDAuthMiddleware
 from legalmind.api.middleware.logging import ObservabilityMiddleware
 from legalmind.api.middleware.rate_limiting import RateLimitMiddleware
-from legalmind.api.routes import agents, chat, health, ingest, search
+from legalmind.api.routes import agents, chat, health, ingest, me, search
 from legalmind.config import get_async_azure_credential, get_settings
 from legalmind.services.cosmos_client import get_cosmos_service
 
@@ -142,6 +142,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix="/api")
     app.include_router(ingest.router, prefix="/api")
     app.include_router(agents.router, prefix="/api")
+    app.include_router(me.router, prefix="/api")
 
     return app
 

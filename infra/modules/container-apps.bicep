@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------------------
 // Module: container-apps.bicep
-// Container Apps Environment + FastAPI backend + Streamlit frontend.
+// Container Apps Environment + FastAPI backend + web front end (web/).
 // Both apps run as the shared user-assigned identity (see identity.bicep).
 // ---------------------------------------------------------------------------
 
@@ -34,7 +34,7 @@ param acrLoginServer string
 @description('API image (e.g. <acr>/legalmind-api:<tag>). Empty = placeholder image until the first app deploy.')
 param apiImage string = ''
 
-@description('Frontend image (e.g. <acr>/legalmind-frontend:<tag>). Empty = placeholder image.')
+@description('Web front end image (e.g. <acr>/legalmind-web:<tag>). Empty = placeholder image.')
 param frontendImage string = ''
 
 @description('Azure OpenAI endpoint: the account, or the AI gateway (API Management) in front of it.')
@@ -85,6 +85,9 @@ param infrastructureSubnetId string = ''
 @description('Audiences the API accepts in Entra ID tokens ("<client id>,api://<client id>", from scripts/setup_entra.sh). Empty = sign-in off.')
 param apiAudience string = ''
 
+@description('Client ID of the app registration of the web front end (scripts/setup_entra.sh --web). Empty = the site runs with sign-in off.')
+param webClientId string = ''
+
 @description('Matter number -> Entra group object ID, as JSON (MATTER_GROUPS, from scripts/setup_entra.sh).')
 param matterGroups string = '{}'
 
@@ -95,6 +98,10 @@ param matterGroups string = '{}'
 // itself (app role Service), which gives it public law only.
 var signInEnabled = !empty(apiAudience)
 var apiScope = signInEnabled ? 'api://${split(apiAudience, ',')[0]}/.default' : ''
+// What the web front end asks for when a user signs in (the API's delegated scope)
+var webApiScope = signInEnabled ? 'api://${split(apiAudience, ',')[0]}/access_as_user' : ''
+// The web front end calls the API from the browser: its origin must pass CORS
+var webOrigin = 'https://ca-${projectName}-web-${environmentName}.${containerAppEnv.properties.defaultDomain}'
 
 // In a VNet the apps reach the data services through their private endpoints. The
 // environment then uses workload profiles (required for VNet integration on the
@@ -219,6 +226,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'AZURE_TENANT_ID', value: tenant().tenantId }
             { name: 'AZURE_API_AUDIENCE', value: apiAudience }
             { name: 'MATTER_GROUPS', value: matterGroups }
+            { name: 'APP_CORS_ORIGINS', value: string([webOrigin, 'http://localhost:3000']) }
           ]
           probes: apiUsesPlaceholder ? [] : healthProbes
         }
@@ -235,7 +243,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // ---------------------------------------------------------------------------
-// Container App — Streamlit frontend (calls the API server-side)
+// Container App — web front end (web/: static Next.js on nginx; the browser calls the API)
 // ---------------------------------------------------------------------------
 resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: 'ca-${projectName}-web-${environmentName}'
@@ -252,8 +260,8 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
       activeRevisionsMode: 'Single'
       ingress: {
         external: true
-        targetPort: frontendUsesPlaceholder ? 80 : 8501
-        transport: 'http' // Streamlit uses WebSockets; 'http' ingress supports them
+        targetPort: frontendUsesPlaceholder ? 80 : 8080
+        transport: 'http'
         allowInsecure: false
       }
       registries: [
@@ -266,17 +274,21 @@ resource frontendApp 'Microsoft.App/containerApps@2024-03-01' = {
           name: 'legalmind-web'
           image: frontendUsesPlaceholder ? placeholderImage : frontendImage
           resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
+            cpu: json('0.25') // nginx serving static files
+            memory: '0.5Gi'
           }
+          // Written into /config.json for the browser at start (web/docker/40-config.sh)
           env: [
-            { name: 'LEGALMIND_API_URL', value: 'https://${apiApp.properties.configuration.ingress.fqdn}' }
+            { name: 'WEB_API_URL', value: 'https://${apiApp.properties.configuration.ingress.fqdn}' }
+            { name: 'WEB_CLIENT_ID', value: signInEnabled ? webClientId : '' }
+            { name: 'WEB_TENANT_ID', value: tenant().tenantId }
+            { name: 'WEB_API_SCOPE', value: webApiScope }
           ]
         }
       ]
       scale: {
         minReplicas: isProd ? 1 : 0
-        maxReplicas: isProd ? 3 : 1 // Streamlit sessions live in memory: keep one replica outside prod
+        maxReplicas: 3 // stateless
       }
     }
   }

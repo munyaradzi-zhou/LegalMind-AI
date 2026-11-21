@@ -10,6 +10,9 @@
 #   - its service principal, with assignment required (only users and apps given a
 #     role can get a token for the API)
 #   - one security group per matter in corpus/manifest.json ("LegalMind matter …")
+#   - with --web: the "LegalMind Web (<env>)" app registration for the web front end (a
+#     single-page app signing users in with MSAL), allowed to ask for access_as_user and
+#     pre-authorised on the API, so users aren't asked to consent
 #
 # Prints the settings for the API (AZURE_API_AUDIENCE, MATTER_GROUPS); pass them
 # to deploy.sh (it reads them from the environment) and re-run
@@ -23,6 +26,7 @@
 #   ./scripts/setup_entra.sh --environment dev
 #   ./scripts/setup_entra.sh -e dev --assign <user or app object id> <role> [matter ...]
 #   ./scripts/setup_entra.sh -e dev --unassign <user object id> <matter ...>
+#   ./scripts/setup_entra.sh -e dev --web https://<web app host>   # prints WEB_CLIENT_ID
 # =============================================================================
 set -euo pipefail
 
@@ -32,19 +36,22 @@ ACTION="setup"
 PRINCIPAL=""
 ROLE=""
 MATTERS=()
+WEB_ORIGIN=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -e | --environment) ENVIRONMENT="$2"; shift 2 ;;
     --assign) ACTION="assign"; PRINCIPAL="$2"; ROLE="$3"; shift 3; MATTERS=("$@"); break ;;
     --unassign) ACTION="unassign"; PRINCIPAL="$2"; shift 2; MATTERS=("$@"); break ;;
-    -h | --help) sed -n '2,27p' "$0"; exit 0 ;;
+    --web) ACTION="web"; WEB_ORIGIN="${2%/}"; shift 2 ;;
+    -h | --help) sed -n '2,31p' "$0"; exit 0 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
   esac
 done
 [[ "${ENVIRONMENT}" =~ ^(dev|staging|prod)$ ]] || { echo "--environment must be dev, staging or prod" >&2; exit 1; }
 
 APP_NAME="LegalMind API (${ENVIRONMENT})"
+WEB_NAME="LegalMind Web (${ENVIRONMENT})"
 GRAPH="https://graph.microsoft.com/v1.0"
 AZURE_CLI_APP_ID="04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
@@ -72,6 +79,8 @@ group_id() {
 }
 
 app_id() { az ad app list --filter "displayName eq '${APP_NAME}'" --query "[0].appId" -o tsv; }
+
+web_app_id() { az ad app list --filter "displayName eq '${WEB_NAME}'" --query "[0].appId" -o tsv; }
 
 sp_id() { az ad sp list --filter "appId eq '$1'" --query "[0].id" -o tsv; }
 
@@ -116,11 +125,9 @@ setup() {
 }
 JSON
   az rest --method PATCH --uri "${GRAPH}/applications/${obj}" --headers "Content-Type=application/json" --body "@${body}"
-  # The scope must exist before an application can be pre-authorised for it.
-  printf '{"api":{"preAuthorizedApplications":[{"appId":"%s","delegatedPermissionIds":["%s"]}]}}' \
-    "${AZURE_CLI_APP_ID}" "${SCOPE_ID}" > "${body}"
-  az rest --method PATCH --uri "${GRAPH}/applications/${obj}" --headers "Content-Type=application/json" --body "@${body}"
   rm -f "${body}"
+  # The scope must exist before an application can be pre-authorised for it.
+  preauthorize "${obj}"
   echo "Configured app roles, the access_as_user scope and the groups claim"
 
   sp="$(sp_id "${app}")"
@@ -153,6 +160,55 @@ print('\n'.join(sorted({d['matter'] for d in docs if d.get('matter')})))" "${ROO
   echo "  export MATTER_GROUPS='${json}'"
   echo "Get a token to test with (after --assign):"
   echo "  az account get-access-token --scope api://${app}/access_as_user --query accessToken -o tsv"
+}
+
+# Clients that may ask for access_as_user without a consent prompt: the Azure CLI (testers)
+# and, once it exists, the web front end. Graph replaces the whole list, so set both.
+preauthorize() { # $1 = object id of the API app registration
+  local body web clients
+  web="$(web_app_id)"
+  clients="{\"appId\":\"${AZURE_CLI_APP_ID}\",\"delegatedPermissionIds\":[\"${SCOPE_ID}\"]}"
+  [[ -n "${web}" ]] && clients+=",{\"appId\":\"${web}\",\"delegatedPermissionIds\":[\"${SCOPE_ID}\"]}"
+  body="$(body_file)"
+  printf '{"api":{"preAuthorizedApplications":[%s]}}' "${clients}" > "${body}"
+  az rest --method PATCH --uri "${GRAPH}/applications/$1" --headers "Content-Type=application/json" --body "@${body}"
+  rm -f "${body}"
+  echo "Pre-authorised for access_as_user: Azure CLI${web:+, ${WEB_NAME}}"
+}
+
+# The web front end: a single-page app (MSAL, authorization code flow with PKCE) whose
+# redirect URIs are the deployed site and the local dev server.
+web() {
+  local api api_obj web obj body
+  [[ "${WEB_ORIGIN}" =~ ^https:// ]] || { echo "--web needs the site's https:// origin" >&2; exit 1; }
+  api="$(app_id)"; [[ -n "${api}" ]] || { echo "Run the setup first" >&2; exit 1; }
+  web="$(web_app_id)"
+  if [[ -z "${web}" ]]; then
+    web="$(az ad app create --display-name "${WEB_NAME}" --sign-in-audience AzureADMyOrg --query appId -o tsv)"
+    echo "Created app registration ${WEB_NAME} (${web})"
+  else
+    echo "App registration ${WEB_NAME} exists (${web})"
+  fi
+  obj="$(az ad app show --id "${web}" --query id -o tsv)"
+  body="$(body_file)"
+  cat > "${body}" <<JSON
+{
+  "spa": { "redirectUris": ["${WEB_ORIGIN}", "http://localhost:3000"] },
+  "requiredResourceAccess": [{
+    "resourceAppId": "${api}",
+    "resourceAccess": [{ "id": "${SCOPE_ID}", "type": "Scope" }]
+  }]
+}
+JSON
+  az rest --method PATCH --uri "${GRAPH}/applications/${obj}" --headers "Content-Type=application/json" --body "@${body}"
+  rm -f "${body}"
+  [[ -n "$(sp_id "${web}")" ]] || az ad sp create --id "${web}" -o none
+  echo "Redirect URIs: ${WEB_ORIGIN}, http://localhost:3000"
+  api_obj="$(az ad app show --id "${api}" --query id -o tsv)"
+  preauthorize "${api_obj}"
+  echo ""
+  echo "Setting for deploy.sh and the CD workflow (an environment variable on GitHub):"
+  echo "  export WEB_CLIENT_ID='${web}'"
 }
 
 assign() {

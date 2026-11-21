@@ -1,1 +1,0 @@
-"""LegalMind AI Streamlit frontend."""

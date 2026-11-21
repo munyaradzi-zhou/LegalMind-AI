@@ -47,6 +47,10 @@ jobs:
           # Matter number -> Entra group ID (scripts/setup_entra.sh), an environment variable:
           # the index carries the group IDs, so the API must map matters to the same ones
           MATTER_GROUPS: ${{ vars.MATTER_GROUPS || '{}' }}
+          # Sign-in (scripts/setup_entra.sh): the API's audiences and the web front end's
+          # app registration. Unset = sign-in off
+          AZURE_API_AUDIENCE: ${{ vars.AZURE_API_AUDIENCE || '' }}
+          WEB_CLIENT_ID: ${{ vars.WEB_CLIENT_ID || '' }}
         run: >-
           bash scripts/deploy.sh --environment "${{ inputs.environment }}" --tag "${{ inputs.sha }}"
           ${{ inputs.reapply_infra && '--reapply-infra' || '' }}

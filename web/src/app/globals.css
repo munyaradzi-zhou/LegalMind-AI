@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* "Paper & Ember": the portfolio's design tokens (portfolio/css/variables.css) */
+@theme {
+  --color-paper: #e8e3d2;
+  --color-paper-soft: #ede8d7;
+  --color-surface: #faf4e8;
+  --color-panel: #e4ddcc;
+  --color-inset: #ded9c6;
+  --color-stone: #d9d4c3;
+  --color-tan: #bcb4a4;
+  --color-rule: #d3cebb;
+  --color-ink: #14130c;
+  --color-ink-body: #4f4938;
+  --color-ink-muted: #5f594a;
+  --color-ember: #c55644;
+  --color-ember-deep: #a14c3f;
+  --color-signal: #d66949;
+  --color-sage: #b5cab1;
+  --color-lilac: #c1bcd6;
+  --color-peach: #e9c0aa;
+
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", Menlo, Consolas, monospace;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink-body);
+  font-family: var(--font-sans);
+  line-height: 1.65;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ember-deep);
+  outline-offset: 2px;
+}

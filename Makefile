@@ -1,4 +1,4 @@
-.PHONY: help install dev check lint format typecheck security test test-integration eval eval-gate traffic run run-frontend up down deploy-dev clean
+.PHONY: help install dev check lint format typecheck security test test-integration eval eval-gate traffic run run-web up down deploy-dev clean
 
 ENV ?= dev
 
@@ -11,7 +11,8 @@ install: ## Install the API package
 	pip install -e .
 
 dev: ## Install everything for development and the git hooks
-	pip install -e ".[dev,frontend,notebooks]"
+	pip install -e ".[dev,notebooks]"
+	cd web && npm ci
 	pre-commit install
 
 # ─── Quality gates (same as CI) ──────────────────────────────────────────────
@@ -57,8 +58,8 @@ traffic: ## Realistic traffic against a deployed API: make traffic API_URL=https
 run: ## API with auto-reload on http://localhost:8000
 	uvicorn legalmind.main:app --reload --reload-dir src --port 8000
 
-run-frontend: ## Streamlit UI on http://localhost:8501
-	streamlit run src/frontend/app.py --server.port 8501
+run-web: ## Web front end on http://localhost:3000 (sign-in off, API on :8000)
+	cd web && npm run dev
 
 up: ## API + UI in Docker
 	docker compose up --build

@@ -87,10 +87,6 @@ corpus = [
     "pillow>=10.0.0",
     "lxml>=5.0.0",
 ]
-frontend = [
-    "streamlit>=1.50.0",
-    "streamlit-chat>=0.1.1",
-]
 notebooks = [
     "jupyter>=1.0.0",
     "nbconvert>=7.16.0",

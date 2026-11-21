@@ -58,6 +58,9 @@ param networkIsolation bool = false
 @description('Audiences the API accepts in Entra ID tokens (from scripts/setup_entra.sh). Empty = sign-in off.')
 param apiAudience string = ''
 
+@description('Client ID of the app registration of the web front end (scripts/setup_entra.sh --web).')
+param webClientId string = ''
+
 @description('Matter number -> Entra group object ID, as JSON (from scripts/setup_entra.sh).')
 param matterGroups string = '{}'
 
@@ -270,7 +273,7 @@ module containerApps 'modules/container-apps.bicep' = {
     identityClientId: identity.outputs.clientId
     acrLoginServer: registry.outputs.loginServer
     apiImage: empty(apiImageTag) ? '' : '${registry.outputs.loginServer}/legalmind-api:${apiImageTag}'
-    frontendImage: empty(frontendImageTag) ? '' : '${registry.outputs.loginServer}/legalmind-frontend:${frontendImageTag}'
+    frontendImage: empty(frontendImageTag) ? '' : '${registry.outputs.loginServer}/legalmind-web:${frontendImageTag}'
     openAiEndpoint: gatewayOn ? 'https://${apimName}.azure-api.net/' : aiFoundry.outputs.openAiEndpoint
     openAiViaGateway: gatewayOn
     chatDeployment: aiFoundry.outputs.chatDeploymentName
@@ -286,6 +289,7 @@ module containerApps 'modules/container-apps.bicep' = {
     mcpEnabled: mcpEnabled
     infrastructureSubnetId: networkIsolation ? network!.outputs.appsSubnetId : ''
     apiAudience: apiAudience
+    webClientId: webClientId
     matterGroups: matterGroups
   }
 }

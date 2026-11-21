@@ -33,17 +33,14 @@ services:
       start_period: 15s
     restart: unless-stopped
 
-  # ─── Streamlit Frontend ──────────────────────────────────────────────
-  frontend:
+  # ─── Web front end (web/, sign-in off: config.json gets no client ID) ──
+  web:
     build:
-      context: .
-      dockerfile: Dockerfile.frontend  # the API image has no Streamlit
+      context: web
     ports:
-      - "8501:8501"
+      - "3000:8080"
     environment:
-      - LEGALMIND_API_URL=http://api:8000
-    volumes:
-      - ./src/frontend:/app/src/frontend:ro
+      - WEB_API_URL=http://localhost:8000  # the browser calls the API directly
     depends_on:
       api:
         condition: service_healthy
