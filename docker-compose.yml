@@ -3,7 +3,7 @@
 # =============================================================================
 # Usage: docker-compose up -d
 # API:       http://localhost:8000/docs
-# Frontend:  http://localhost:8501
+# Web:       http://localhost:3000
 # =============================================================================
 
 services:
@@ -19,7 +19,7 @@ services:
     environment:
       - APP_ENV=development
       - APP_LOG_LEVEL=DEBUG
-      - APP_CORS_ORIGINS=["http://localhost:8501","http://localhost:3000"]
+      - APP_CORS_ORIGINS=["http://localhost:3000"]
       # Import the mounted source instead of the copy installed in the image, so --reload picks up edits
       - PYTHONPATH=/app/src
     volumes:

@@ -2,13 +2,16 @@
 
 [![CI](https://github.com/munyaradzi-zhou/LegalMind-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/munyaradzi-zhou/LegalMind-AI/actions/workflows/ci.yml)
 ![Python 3.11](https://img.shields.io/badge/python-3.11-14130C)
-![Azure](https://img.shields.io/badge/Azure-OpenAI%20%C2%B7%20AI%20Search%20%C2%B7%20Container%20Apps-A14C3F)
+![TypeScript](https://img.shields.io/badge/TypeScript-Next.js-14130C)
+![Azure](https://img.shields.io/badge/Azure-OpenAI%20%C2%B7%20AI%20Search%20%C2%B7%20API%20Management-A14C3F)
 [![License: MIT](https://img.shields.io/badge/license-MIT-5F594A)](LICENSE)
 
-**A multi-agent legal case assistant for Dutch legal services, built on Azure AI.**
-It ingests contracts, letters and case files, retrieves the relevant passages with hybrid search, routes each question to a specialist agent, and checks every answer with responsible-AI guardrails before it reaches the user.
+**A multi-agent legal assistant for Dutch legal services, built, deployed and measured on Azure.**
+Lawyers sign in and ask questions about their matters' documents, Dutch legislation and
+published case law. Every answer cites its sources, and says whether those sources were
+checked to back it. A user only ever sees passages from the matters they work on.
 
-![LegalMind AI answering a drafting request](assets/ui-chat.png)
+![LegalMind answering a question with numbered sources and a grounding label](assets/web-answer.png)
 
 ---
 
@@ -16,121 +19,109 @@ It ingests contracts, letters and case files, retrieves the relevant passages wi
 
 | | |
 |---|---|
-| **Multi-agent orchestration** | An orchestrator classifies intent and routes to four Semantic Kernel agents — document analysis, legal research, drafting and compliance — each with its own tools, prompts and few-shot examples. Cross-domain questions are handed off between agents (max depth 3). |
-| **Retrieval-augmented generation** | Azure AI Search hybrid retrieval: `text-embedding-3-large` vectors + BM25 fused with Reciprocal Rank Fusion, then semantic re-ranking. Every chunk carries a one-line header identifying its document (contextual retrieval). Answers cite their sources `[1]`, `[2]`, … LLM query rewriting is available but off by default — it added 1.3 s without improving retrieval. |
-| **Document ingestion** | Upload to Blob Storage → layout analysis with Document Intelligence (Markdown with tables, exact page numbers) → semantic or parent-child chunking → a contextual header per chunk → enrichment with entities and key phrases (AI Language) → batched embeddings → indexing. Re-ingesting a document replaces its earlier version. |
-| **Responsible AI** | Content Safety on every input and output, PII detection (Azure AI Language + Dutch BSN/IBAN/postcode patterns), an LLM groundedness check of each answer against the retrieved context that fails closed, and an audit trail in Cosmos DB. Every answer carries a `grounding` label (`documents`, `not_grounded`, `unverified`, `no_documents`) that the UI shows, and lists only the sources it actually used. |
-| **Production plumbing** | FastAPI with SSE streaming, Entra ID JWT auth, rate limiting, structured logs and OpenTelemetry → Application Insights, conversation memory in Cosmos DB. |
-| **MCP server** | The knowledge base as Model Context Protocol tools for other agents (Claude, Copilot, Foundry). |
-
-The retriever also includes query decomposition and HyDE, and there is a self-reflection module for answer critique; both are ready to use but not yet in the default chat path.
+| **Answers with sources, checked** | Hybrid retrieval (BM25 + vectors, semantic ranker) over chunks that each carry a header naming their document. Four Semantic Kernel agents (document analysis, legal research, drafting, compliance) behind a router. An LLM groundedness check reads every answer against its sources and labels it `documents`, `not_grounded`, `unverified` (the check failed: it fails closed) or `no_documents`. |
+| **Live Dutch law** | The research agent looks up the current text of an article on wetten.overheid.nl and published rulings on rechtspraak.nl. Results are numbered, cited by their BWB id or ECLI with a link, and checked like any other source. |
+| **Who sees what** | Entra ID sign-in with app roles (Lawyer, Paralegal, Admin) and one security group per matter. The search engine filters every query by the user's groups and fails closed; privileged documents only reach lawyers. |
+| **Web front end** | Next.js + TypeScript. MSAL sign-in, the pipeline's real progress streamed over SSE, numbered citations that open the passage or the official text, Admin-only upload. |
+| **AI gateway** | API Management between the app and Azure OpenAI: per-user token limits, token metrics per user, and failover to a second region when the first is throttled or failing. |
+| **Responsible AI and data protection** | Content Safety and PII detection on every question and answer; conversations stored with personal data replaced by its category; retention per data type; optional private networking. |
+| **Operations** | Five alerts (errors, latency, unverified answers, model throttling, restarts), an operations workbook, a runbook tested by incident drills, and an evaluation gate on pull requests. |
+| **MCP server** | The knowledge base and the live legal sources as Model Context Protocol tools for other agents. |
 
 ## Architecture
 
 ```mermaid
 graph LR
-    subgraph Client
-        UI["Streamlit UI"]
+    subgraph Users
+        WEB["Web front end<br/>Next.js · MSAL"]
+        MCPC["Other agents<br/>(MCP)"]
     end
     subgraph "Azure Container Apps"
-        API["FastAPI<br/>auth · rate limit · tracing"]
+        API["FastAPI<br/>Entra ID · trimming · tracing"]
         GR["Guardrails<br/>safety · PII · groundedness"]
-        RET["Retrieval<br/>hybrid search → semantic rerank"]
-        ORCH["Orchestrator"]
-        AG["4 specialist agents<br/>Semantic Kernel + tools"]
-        ING["Ingestion pipeline"]
+        RET["Retrieval<br/>hybrid → semantic ranker"]
+        AG["Router + 4 agents<br/>Semantic Kernel"]
+        MCP["MCP server"]
     end
-    subgraph "Azure AI"
-        OAI["Azure OpenAI<br/>gpt-4.1-mini · embeddings"]
+    subgraph "API Management (AI gateway)"
+        GW["token limits · metrics<br/>circuit breakers"]
+    end
+    subgraph "Azure OpenAI"
+        OAI1["East US 2"]
+        OAI2["France Central<br/>(failover)"]
+    end
+    subgraph "Azure AI and data"
         SRCH["AI Search"]
-        LANG["AI Language"]
-        DI["Document Intelligence"]
-        CS["Content Safety"]
-    end
-    subgraph Data
+        AIS["Language · Content Safety<br/>Document Intelligence"]
+        COS["Cosmos DB"]
         BLOB["Blob Storage"]
-        COSMOS["Cosmos DB<br/>sessions · memory · audit"]
     end
-    APIM["API Management"] --> API
-    UI --> API
-    API --> GR --> RET --> ORCH --> AG
-    API --> ING
+    LAW["wetten.overheid.nl<br/>rechtspraak.nl"]
+    WEB --> API
+    MCPC --> MCP --> API
+    API --> GR --> RET --> AG
     RET --> SRCH
-    RET --> OAI
-    AG --> OAI
-    AG --> SRCH
-    GR --> CS
-    GR --> LANG
-    ING --> DI
-    ING --> LANG
-    ING --> BLOB
-    ING --> SRCH
-    API --> COSMOS
+    AG --> LAW
+    GR --> AIS
+    API --> COS
+    API --> BLOB
+    AG --> GW
+    RET --> GW
+    GW --> OAI1
+    GW -.-> OAI2
 ```
 
-All service-to-service calls use Microsoft Entra ID through one user-assigned managed identity — there are no API keys or connection strings in the code or the infrastructure.
+All service-to-service calls use Microsoft Entra ID through one user-assigned managed
+identity; key authentication is switched off on every service. Everything is in Bicep
+([`infra/`](infra)); network isolation (private endpoints, public access off) is a parameter.
 
-| Azure service | Used for | Tier (dev) |
-|---|---|---|
-| Azure OpenAI | Chat (`gpt-4.1-mini`), embeddings (`text-embedding-3-large`, 3072 dims) | Global Standard · Standard |
-| Azure AI Search | Hybrid vector + keyword index, semantic ranker | Basic, free semantic plan |
-| Azure AI Language | Entities, key phrases, PII | S0 |
-| Document Intelligence | Layout, tables and OCR for PDF, DOCX, scans and photos | S0 |
-| Azure AI Content Safety | Harm classification of inputs and outputs | S0 |
-| Cosmos DB | Sessions, long-term memory, audit log | Serverless |
-| Blob Storage | Original documents | Standard LRS |
-| Container Apps + Container Registry | API and UI hosting, scale to zero | Consumption · Basic |
-| API Management | Gateway and rate limiting | Consumption |
-| Key Vault · Log Analytics · Application Insights | Secrets, logs, traces | Standard · PAYG |
+Why it's built this way, with the measurement behind each choice:
+[architecture decision records](docs/adr/README.md).
 
-### Data protection
+## Measured
 
-Who sees what is decided per document ([ADR 0001](docs/adr/0001-document-level-security-trimming.md)): public law for everyone, a client's files only for the people on that matter, privileged documents only for lawyers. What is stored, and for how long:
+On the dev deployment, November 2026. The evaluation suites are in
+[`tests/evaluation`](tests/evaluation); the gate runs them on pull requests.
 
-| Data | Where | Kept | Who can read it |
-|---|---|---|---|
-| Original documents | Blob Storage | Until deleted, then 7 days soft-deleted (30 in prod) | The app's identity |
-| Chunks, embeddings, entities | AI Search | Until the document is replaced or deleted | Users whose matter groups match the chunk (filtered on every search) |
-| Conversations | Cosmos DB `sessions` | 30 days after the last message | The user who had the conversation |
-| Long-term memory | Cosmos DB `memory` | 30 days after the last update | That user |
-| Audit events (safety checks, routing, PII counts) | Cosmos DB `audit_log` | 365 days | Operators |
-| Logs and traces | Log Analytics, Application Insights | 30 days (90 in prod) | Operators |
-
-Conversations are stored with personal data replaced by its category (`[Person]`, `[NLBSNNumber]`, `[Address]`): the guardrails' PII detection runs on every question and answer, the model answers from the original, and Cosmos DB only receives the redacted text and references to the cited passages, not the passages. Audit events hold categories and counts, never message text.
-
-With `networkIsolation` (on for prod, a parameter elsewhere) the data services sit behind private endpoints in a VNet with public network access disabled; only the Container Apps environment, inside the VNet, can reach them. `scripts/check_isolation.py` calls every service from outside with a valid token and reports which ones the network refuses.
-
-## Running on Azure
-
-Deployed end to end on an Azure subscription and measured with the evaluation suites and Application Insights:
-
-![Application Insights application map of the deployed API](assets/azure-app-map.png)
-
-| Measured on the live deployment | |
+| Answer quality (66 golden questions, through the live API) | |
 |---|---|
-| Routing to the right specialist agent | 100 % (24 labelled questions) |
-| Right passage ranked first — hybrid + semantic ranker vs keyword only | 80 % vs 49 % (35 questions) |
-| Expected facts in answers · right source cited | 97 % · 100 % (27 questions, LLM judge) |
-| Unanswerable questions declined, incl. near-misses whose answer belongs to another document | 8 / 8 |
-| `/api/chat` latency p50 / p95, after removing query rewriting | 7.3 s / 15.7 s (was 14.8 s / 39.5 s) |
-| Code-only release (CI green → new revision live) | ~4 minutes |
+| Expected facts in answers | 96% |
+| Right source cited | 98% |
+| Unanswerable questions declined or flagged, including near-misses | 14 / 14 |
+| Right passage in the top 3 (68 queries; hybrid + semantic ranker vs keyword) | 88% vs 56% |
+| Questions about live law and case law: source cited, facts present, grounded | 8 / 8 |
 
-Along the way the dashboards caught a groundedness check that failed open on malformed JSON, and the evaluations caught answers that ignored retrieved context and facts borrowed from the wrong document — each fixed and re-measured (the last one by giving every chunk a header that names its document).
+| Security and operations | |
+|---|---|
+| Searches by 5 test users across matters and roles; passages leaked | 340; **0** |
+| Isolated deployment: services reachable from the internet with a valid token | **0 / 9** |
+| Incident drills: alerts that fired | 5 / 5 |
+| Load test: errors from 2 to 30 concurrent users | **0** (ceiling about 30 answers a minute: the model capacity) |
+| Primary model region throttled: errors seen by users | **0** (160 calls moved to the second region) |
+| Cost per answer | about €0.0085 ([costs](docs/costs.md)) |
+
+What these numbers caught along the way, and what was fixed: a groundedness check that
+had failed open 52 times, answers that took a number from the wrong document, a check that
+couldn't see live sources, an agent presenting a published ruling as a client's own case,
+and a semantic-ranker quota that took search down.
 
 ## Run it locally
 
-Requirements: Python 3.11+, and either an OpenAI API key or deployed Azure resources.
+Requirements: Python 3.11+, Node 22, and either an OpenAI API key or deployed Azure resources.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev,frontend]"
-cp .env.example .env                                 # then set OPENAI_API_KEY, or the Azure endpoints
+make dev                                            # Python package, git hooks, web/ dependencies
+cp .env.example .env                                # OPENAI_API_KEY, or the Azure endpoints
 
-make run            # API on http://localhost:8000 (Swagger UI at /docs)
-make run-frontend   # UI  on http://localhost:8501
+make run       # API on http://localhost:8000 (Swagger UI at /docs)
+make run-web   # web front end on http://localhost:3000, sign-in off
 ```
 
-With only `OPENAI_API_KEY` set, the agents answer with `gpt-4o-mini` from the OpenAI API, conversations are kept in memory, and search and Content Safety are skipped; document upload needs Azure. Point `.env` at Azure endpoints to enable everything. `make up` runs the same two services in Docker.
+With only `OPENAI_API_KEY`, the agents answer from the OpenAI API, conversations stay in
+memory, and search and Content Safety are skipped. `scripts/azure-env.sh` writes the
+endpoints of a deployed environment into `.env.azure`, used with your own `az login`.
+`make up` runs the API and the web front end in Docker.
 
 ## Deploy to Azure
 
@@ -140,80 +131,100 @@ export APIM_PUBLISHER_EMAIL=you@example.com
 ./scripts/deploy.sh --environment dev --seed
 ```
 
-[`scripts/deploy.sh`](scripts/deploy.sh) deploys the Bicep templates in [`infra/`](infra), builds and pushes both images to the registry, rolls the Container Apps onto them, uploads the sample documents and runs smoke tests. The search index is created by the API on start-up.
+[`scripts/deploy.sh`](scripts/deploy.sh) applies the Bicep (only when `infra/` changed, or
+with `--reapply-infra`), builds and pushes the API and web images, rolls out the Container
+Apps and runs smoke tests. **Sign-in**: `scripts/setup_entra.sh` creates the API's app
+registration, app roles and matter groups, and with `--web <site>` the web front end's;
+`--assign` gives a user a role and matters. Pass the printed `AZURE_API_AUDIENCE`,
+`MATTER_GROUPS` and `WEB_CLIENT_ID` to the deployment.
 
-**Continuous delivery.** After CI passes on `main`, [`cd.yml`](.github/workflows/cd.yml) deploys the tested commit to dev, then staging, then prod (behind an approval on the `production` environment), using OIDC — no stored Azure credentials. It activates once the repository variables `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID` and `APIM_PUBLISHER_EMAIL` are set.
+**Continuous delivery.** After CI passes on `main`, [`cd.yml`](.github/workflows/cd.yml)
+deploys the commit to dev, then staging and prod (behind an approval), over OIDC: no stored
+Azure credentials.
 
 ## API
 
 ```bash
-# Ask a question (set "stream": true for Server-Sent Events)
-curl -X POST localhost:8000/api/chat -H "Content-Type: application/json" \
-  -d '{"message": "Wat zijn de opzegvoorwaarden in dit contract?", "stream": false}'
+TOKEN=$(az account get-access-token --scope api://<api-app-id>/access_as_user --query accessToken -o tsv)
 
-# Ingest a document (Admin role); the matter decides who may see it ("public" for legislation)
-curl -X POST localhost:8000/api/ingest -F "file=@contract.pdf" -F "document_type=contract" -F "language=nl" \
-  -F "matter=BM/2026/H-0412"
+# Ask a question; "stream": true sends progress events, then the answer, over SSE
+curl -X POST $API/api/chat -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"message": "Wat zegt artikel 7:271 BW over opzegging?", "stream": false}'
 
-# Search the knowledge base
-curl -X POST localhost:8000/api/search -H "Content-Type: application/json" \
-  -d '{"query": "aansprakelijkheid bij arbeidsongeval", "top": 5}'
+# Add a document (Admin role); the matter decides who may see it ("public" for legislation)
+curl -X POST $API/api/ingest -H "Authorization: Bearer $TOKEN" \
+  -F "file=@contract.pdf" -F "document_type=contract" -F "matter=BM/2026/H-0412"
 ```
 
-Also: `GET /api/agents`, `GET /health`, `GET /health/ready`. Full schemas at `/docs`.
+Also `POST /api/search`, `GET /api/me`, `GET /api/agents`, `GET /health`. Full schemas at `/docs`.
 
 ## Use it from other agents (MCP)
 
-LegalMind is also a [Model Context Protocol](https://modelcontextprotocol.io) server, so any MCP-capable agent — Claude Code or Claude Desktop, GitHub Copilot in VS Code, Azure AI Foundry agents — can use the knowledge base as a tool. It is a thin client of the API, so the same guardrails and audit log apply.
+`legalmind-mcp` serves the knowledge base as [Model Context Protocol](https://modelcontextprotocol.io)
+tools for Claude Code, Copilot in VS Code or Azure AI Foundry agents. It calls the API, so the
+same guardrails, audit log and access rules apply.
 
 | Tool | Does |
 |---|---|
-| `ask_legal_question` | Grounded answer with citations; pass `session_id` back for follow-up questions |
-| `search_legal_documents` | Hybrid search for passages, optionally by document type |
-| `ingest_document` | Add a local PDF, DOCX, TXT or image to the knowledge base |
-| `list_agents` | The specialist agents and their tools |
+| `ask_legal_question` | A cited, checked answer; pass `session_id` back for follow-ups |
+| `search_legal_documents` | Hybrid search for passages |
+| `get_dutch_law_article`, `search_dutch_case_law`, `get_dutch_ruling` | The current text of a law, and published rulings |
+| `ingest_document`, `list_agents` | Add a local document (stdio only); the agents and their tools |
 
 ```bash
-# Claude Code
 claude mcp add legalmind --env LEGALMIND_API_URL=https://<your-api> -- legalmind-mcp
-
-# Any client over HTTP instead of stdio: serves http://127.0.0.1:8001/mcp
-LEGALMIND_API_URL=https://<your-api> legalmind-mcp --transport streamable-http
 ```
+
+The deployed remote MCP server (streamable HTTP, API key) is part of the CD deployment.
 
 ## Quality
 
-Every push runs the same gates CI enforces — `make check` locally:
+`make check` runs what CI enforces on every pull request:
 
-- **Ruff** lint and formatting, **mypy `--strict`** over the whole package
-- **177 unit tests** (document-level access control and leakage, chunking, contextual headers, guardrails and grounding, PII, confidence scoring, context building, prompts, query rewriting, reflection, token budgets, index schema, orchestrator, MCP tools, evaluation gate)
-- **Bandit** and **pip-audit** security scans
-- **Bicep** compilation of every environment, **Docker** builds of both images, **shellcheck**
+- **Python:** Ruff, mypy `--strict`, 229 unit tests (access control and leakage, the chat
+  stream, guardrails and grounding, PII, live legal sources against recorded responses,
+  the gateway headers, chunking, evaluation gate, MCP tools), Bandit and pip-audit.
+- **Web:** ESLint, `tsc --noEmit`, Vitest (stream parsing, citations, labels, rendering) and a
+  Playwright end-to-end test of the built site.
+- **Infrastructure:** Bicep for every environment, both images built and started, shellcheck.
+- **Answer quality:** pull requests labelled `run-eval` run retrieval and generation against
+  dev and fail when a gated metric drops beyond its tolerance (it caught an agent presenting a
+  published ruling as a client's own case before it reached users).
 
-Integration tests (`tests/integration`) and retrieval, generation and routing evaluations with golden datasets (`tests/evaluation`) run against a deployed environment: `make test-integration`, `make eval`.
+## Documentation
+
+- [Architecture decision records](docs/adr/README.md): eight decisions and their evidence
+- [Costs](docs/costs.md): per resource, per answer, and what each lever is worth
+- [Runbook](docs/runbook.md): what to do when each alert fires
+- [Incident drills](docs/postmortems/2026-11-20-incident-drills.md) and the
+  [load test and failover drill](docs/load-test-2026-11-21.md)
 
 ## Project layout
 
 ```
 src/legalmind/
-  agents/       orchestrator, four specialist agents, prompts, Semantic Kernel tools
-  retrieval/    hybrid search, query rewriting, context building, index schema
-  ingestion/    analysis, chunking, enrichment, embedding, indexing pipeline
-  context/      guardrails, sessions, conversation memory, token budgets
-  services/     thin async clients for each Azure service
-  api/          FastAPI routes, request/response models, middleware
-src/frontend/   Streamlit UI
+  agents/       router, four specialist agents, prompts, Semantic Kernel tools
+  sources/      live legislation (wetten.overheid.nl) and case law (rechtspraak.nl)
+  retrieval/    hybrid search, context building, index schema
+  ingestion/    analysis, chunking, contextual headers, enrichment, indexing
+  context/      guardrails, sessions, conversation memory
+  services/     async clients for each Azure service, the AI gateway headers
+  api/          FastAPI routes, models, middleware (sign-in and access)
+web/            Next.js front end, its nginx image, Vitest and Playwright tests
 infra/          Bicep: main.bicep, modules/, parameters per environment
-scripts/        deploy, seed and smoke-test scripts
-tests/          unit, integration and evaluation suites
-notebooks/      walkthroughs of document analysis, embeddings, retrieval tuning, prompts and agents
+scripts/        deploy, Entra ID setup, seeding, smoke tests, isolation check
+tests/          unit, integration, evaluation and load tests
+docs/           decision records, costs, runbook, postmortems
 ```
 
 ## About this project
 
-I built LegalMind AI while preparing for an Azure AI Engineer role in Dutch legal services, to show an end-to-end, production-minded RAG and agent system on Azure. It is not affiliated with any company: the insurer in the prompts and sample documents, *Voorbeeld Rechtsbijstand*, is fictional.
+I built LegalMind AI while preparing for an Azure AI Engineer role in Dutch legal services,
+to show an end-to-end, production-minded RAG and agent system on Azure. It is not
+affiliated with any company: the insurer, the law firm and every document in it are fictional.
 
-LegalMind AI is a demonstration, not legal advice. Its answers can be wrong and must be checked by a qualified professional.
+LegalMind AI is a demonstration, not legal advice. Its answers can be wrong and must be
+checked by a qualified professional.
 
 ## License
 
