@@ -2,7 +2,8 @@
 
 Finds relevant case law, statutes, regulations, and legal commentary to
 support legal professionals. Uses the SearchTool (for knowledge base
-search) and SummarizeTool (for condensing long legal texts).
+search), SummarizeTool (for condensing long legal texts) and LegalSourcesTool
+(the current text of laws on wetten.overheid.nl, case law on rechtspraak.nl).
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from typing import Any
 from legalmind.agents.base_agent import BaseAgent
 from legalmind.agents.prompts.few_shot_examples import RESEARCH_FEW_SHOT_EXAMPLES
 from legalmind.agents.prompts.system_prompts import RESEARCH_AGENT_PROMPT
+from legalmind.agents.tools.legal_sources_tool import LegalSourcesTool
 from legalmind.agents.tools.search_tool import SearchTool
 from legalmind.agents.tools.summarize_tool import SummarizeTool
 
@@ -30,6 +32,7 @@ class ResearchAgent(BaseAgent):
     Tools:
     - ``search_tool``: Hybrid search with dedicated case law and statute filters
     - ``summarize_tool``: Extractive summarization for condensing legal texts
+    - ``legal_sources``: live legislation (wetten.overheid.nl) and case law (rechtspraak.nl)
     """
 
     def __init__(
@@ -37,6 +40,7 @@ class ResearchAgent(BaseAgent):
         *,
         search_tool: SearchTool | None = None,
         summarize_tool: SummarizeTool | None = None,
+        legal_sources: LegalSourcesTool | None = None,
         **kwargs: Any,
     ) -> None:
         """Initialize the Legal Research agent.
@@ -48,6 +52,7 @@ class ResearchAgent(BaseAgent):
         """
         self._search_tool = search_tool or SearchTool()
         self._summarize_tool = summarize_tool or SummarizeTool()
+        self._legal_sources = legal_sources or LegalSourcesTool()
         super().__init__(**kwargs)
 
         # Inject few-shot examples into history for better response quality
@@ -70,6 +75,7 @@ class ResearchAgent(BaseAgent):
         return RESEARCH_AGENT_PROMPT
 
     def _register_plugins(self) -> None:
-        """Register search and summarization tools as Semantic Kernel plugins."""
+        """Register search, summarization and the live legal sources as Semantic Kernel plugins."""
         self._kernel.add_plugin(self._search_tool, plugin_name="search_tool")
         self._kernel.add_plugin(self._summarize_tool, plugin_name="summarize_tool")
+        self._kernel.add_plugin(self._legal_sources, plugin_name="legal_sources")

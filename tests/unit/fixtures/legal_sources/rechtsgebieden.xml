@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Rechtsgebieden xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Rechtsgebied>
+    <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht</Identifier>
+    <Naam>Bestuursrecht</Naam>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_ambtenarenrecht</Identifier>
+      <Naam>Ambtenarenrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_belastingrecht</Identifier>
+      <Naam>Belastingrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_bestuursprocesrecht</Identifier>
+      <Naam>Bestuursprocesrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_bestuursstrafrecht</Identifier>
+      <Naam>Bestuursstrafrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_europeesBestuursrecht</Identifier>
+      <Naam>Europees bestuursrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_mededingingsrecht</Identifier>
+      <Naam>Mededingingsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_omgevingsrecht</Identifier>
+      <Naam>Omgevingsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_socialezekerheidsrecht</Identifier>
+      <Naam>Socialezekerheidsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#bestuursrecht_vreemdelingenrecht</Identifier>
+      <Naam>Vreemdelingenrecht</Naam>
+    </Rechtsgebied>
+  </Rechtsgebied>
+  <Rechtsgebied>
+    <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht</Identifier>
+    <Naam>Civiel recht</Naam>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_aanbestedingsrecht</Identifier>
+      <Naam>Aanbestedingsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_arbeidsrecht</Identifier>
+      <Naam>Arbeidsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_burgerlijkProcesrecht</Identifier>
+      <Naam>Burgerlijk procesrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_europeesCivielRecht</Identifier>
+      <Naam>Europees civiel recht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_goederenrecht</Identifier>
+      <Naam>Goederenrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_insolventierecht</Identifier>
+      <Naam>Insolventierecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_intellectueeleigendomsrecht</Identifier>
+      <Naam>Intellectueel-eigendomsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_internationaalPrivaatrecht</Identifier>
+      <Naam>Internationaal privaatrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_mededingingsrecht</Identifier>
+      <Naam>Mededingingsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_ondernemingsrecht</Identifier>
+      <Naam>Ondernemingsrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_personenEnFamilierecht</Identifier>
+      <Naam>Personen- en familierecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#civielRecht_verbintenissenrecht</Identifier>
+      <Naam>Verbintenissenrecht</Naam>
+    </Rechtsgebied>
+  </Rechtsgebied>
+  <Rechtsgebied>
+    <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht</Identifier>
+    <Naam>Strafrecht</Naam>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht_europeesStrafrecht</Identifier>
+      <Naam>Europees strafrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht_internationaalStrafrecht</Identifier>
+      <Naam>Internationaal strafrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht_materieelStrafrecht</Identifier>
+      <Naam>Materieel strafrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht_penitentiairStrafrecht</Identifier>
+      <Naam>Penitentiair strafrecht</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#strafrecht_strafprocesrecht</Identifier>
+      <Naam>Strafprocesrecht</Naam>
+    </Rechtsgebied>
+  </Rechtsgebied>
+  <Rechtsgebied>
+    <Identifier>http://psi.rechtspraak.nl/rechtsgebied#internationaalPubliekrecht</Identifier>
+    <Naam>Internationaal publiekrecht</Naam>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#internationaalPubliekrecht_mensenrechten</Identifier>
+      <Naam>Mensenrechten</Naam>
+    </Rechtsgebied>
+    <Rechtsgebied>
+      <Identifier>http://psi.rechtspraak.nl/rechtsgebied#internationaalPubliekrecht_volkenrecht</Identifier>
+      <Naam>Volkenrecht</Naam>
+    </Rechtsgebied>
+  </Rechtsgebied>
+</Rechtsgebieden>

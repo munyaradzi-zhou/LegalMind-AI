@@ -58,6 +58,7 @@ dependencies = [
 
     # Utilities
     "httpx>=0.27.0",
+    "defusedxml>=0.7.1", # parsing XML from the public legal sources (legalmind.sources)
     "mcp>=1.9.0",  # Model Context Protocol server (legalmind-mcp)
     "PyJWT[crypto]>=2.10.0",
     "python-dotenv>=1.0.0",
@@ -145,6 +146,10 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+module = ["defusedxml", "defusedxml.*"] # no type stubs published
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

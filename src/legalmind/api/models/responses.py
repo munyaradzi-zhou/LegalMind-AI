@@ -19,6 +19,9 @@ class Citation(BaseModel):
     chunk_content: str = Field(..., description="The cited passage in full (clients shorten it for display)")
     page_number: int | None = Field(None, description="Page number in the source document")
     relevance_score: float = Field(..., description="Relevance score from search")
+    url: str | None = Field(
+        default=None, description="Link to a live source (wetten.overheid.nl, rechtspraak.nl); its ID is document_id"
+    )
 
 
 class ChatResponse(BaseModel):

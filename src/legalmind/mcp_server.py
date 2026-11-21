@@ -3,7 +3,9 @@
 The server is a thin client of the LegalMind REST API, so every call goes through the
 same guardrails, audit logging and rate limiting as the web UI.
 
-Tools: search_legal_documents, ask_legal_question, ingest_document, list_agents.
+Tools: search_legal_documents, ask_legal_question, ingest_document, list_agents, and the
+live public sources get_dutch_law_article, search_dutch_case_law, get_dutch_ruling
+(wetten.overheid.nl and rechtspraak.nl, called directly: public data, no API needed).
 
 Run it:
     legalmind-mcp                                   # stdio (Claude Code, Claude Desktop, VS Code)
@@ -41,6 +43,8 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.responses import JSONResponse
 
+from legalmind.agents.tools.legal_sources_tool import LegalSourcesTool
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -57,8 +61,9 @@ are only visible to the people working on that case: through this server you may
 public law, so say so when a question needs a client's file.
 Prefer ask_legal_question for questions that need an answer, search_legal_documents to find
 passages, and pass the returned session_id back to ask follow-up questions in the same
-conversation. Check `grounding` before relying on an answer. Answers are not legal advice
-and should be checked by a professional."""
+conversation. Check `grounding` before relying on an answer. For the current official text
+of an article use get_dutch_law_article; for published rulings search_dutch_case_law and
+get_dutch_ruling. Answers are not legal advice and should be checked by a professional."""
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 CONTENT_TYPES = {
@@ -232,6 +237,32 @@ async def list_agents() -> list[dict[str, Any]]:
     return [{k: a.get(k) for k in ("name", "description", "tools")} for a in agents]
 
 
+_LIVE = LegalSourcesTool()
+
+
+async def get_dutch_law_article(law: str, article: str) -> str:
+    """The current official text of an article of Dutch law (wetten.overheid.nl), with the date it took effect.
+
+    law: an abbreviation (BW, Awb, Sr, Sv, Rv, Gw, UAVG, Wft) or the full title; article: e.g. "7:271"
+    for the BW (book:article), "8:69" for the Awb, "310" for the Wetboek van Strafrecht.
+    """
+    return str(await _LIVE.get_article(law, article))
+
+
+async def search_dutch_case_law(query: str, court: str = "", area: str = "", since: str = "") -> str:
+    """Recent published Dutch rulings (rechtspraak.nl) whose official summary matches the query.
+
+    Narrow it with a court ("Hoge Raad", "Rechtbank Amsterdam") and/or an area of law
+    ("Arbeidsrecht", "Verbintenissenrecht", "Bestuursrecht"); since is YYYY-MM-DD.
+    """
+    return str(await _LIVE.search_case_law(query, court=court, area=area, since=since))
+
+
+async def get_dutch_ruling(ecli: str) -> str:
+    """One published Dutch ruling by its ECLI (e.g. ECLI:NL:HR:2020:1946): its summary and text."""
+    return str(await _LIVE.get_ruling(ecli))
+
+
 def build_server(*, remote: bool = False) -> FastMCP:
     """The MCP server with its tools; ``remote`` leaves out tools that need the caller's disk."""
     server = FastMCP(
@@ -244,7 +275,14 @@ def build_server(*, remote: bool = False) -> FastMCP:
         # (it answered 421 to every call). The remote server is protected by the API key.
         transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False) if remote else None,
     )
-    tools: list[Callable[..., Any]] = [search_legal_documents, ask_legal_question, list_agents]
+    tools: list[Callable[..., Any]] = [
+        search_legal_documents,
+        ask_legal_question,
+        list_agents,
+        get_dutch_law_article,
+        search_dutch_case_law,
+        get_dutch_ruling,
+    ]
     if not remote:
         tools.append(ingest_document)
     for tool in tools:
