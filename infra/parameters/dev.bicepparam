@@ -22,3 +22,13 @@ param matterGroups = readEnvironmentVariable('MATTER_GROUPS', '{}')
 
 // Private endpoints and no public access to the data services (NETWORK_ISOLATION=true|false)
 param networkIsolation = bool(readEnvironmentVariable('NETWORK_ISOLATION', 'false'))
+
+// AI gateway (API Management Developer tier): failover to a second region, and enough
+// model capacity for the load test (Global Standard capacity costs nothing until used)
+param apimSku = 'Developer'
+// AI_GATEWAY=false: API Management without the gateway (the first deploy creates the instance, 30-45 min)
+param aiGateway = bool(readEnvironmentVariable('AI_GATEWAY', 'true'))
+param openAiSecondaryLocation = 'francecentral'
+param chatCapacity = 150
+// Semantic cache (Azure Managed Redis, about €1-2 a day): SEMANTIC_CACHE=true to measure it, then off again
+param semanticCache = bool(readEnvironmentVariable('SEMANTIC_CACHE', 'false'))

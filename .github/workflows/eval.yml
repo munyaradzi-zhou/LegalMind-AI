@@ -76,6 +76,16 @@ jobs:
             --query "properties.template.containers[0].env[?value!=null].[name,value]" -o tsv |
             grep -vE '^(AZURE_CLIENT_ID|APPLICATIONINSIGHTS_CONNECTION_STRING|AUTH_ENABLED|APP_ENV)\b' |
             awk -F'\t' '{print $1"="$2}' >> "$GITHUB_ENV"
+          # Straight to the model account, on the evaluation's own deployment: the gateway
+          # only accepts the app identity, and the app's capacity stays the app's
+          # (the incident drills saw an evaluation throttle the app).
+          endpoint=$(az cognitiveservices account list -g rg-legalmind-dev \
+            --query "[?kind=='OpenAI' && !ends_with(name, '-b')].properties.endpoint | [0]" -o tsv)
+          {
+            echo "AZURE_OPENAI_ENDPOINT=$endpoint"
+            echo "AZURE_OPENAI_VIA_GATEWAY=false"
+            echo "AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-4.1-mini-eval"
+          } >> "$GITHUB_ENV"
 
       - name: Start this branch's API
         run: |

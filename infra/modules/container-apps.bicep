@@ -37,8 +37,14 @@ param apiImage string = ''
 @description('Frontend image (e.g. <acr>/legalmind-frontend:<tag>). Empty = placeholder image.')
 param frontendImage string = ''
 
-@description('Azure OpenAI endpoint.')
+@description('Azure OpenAI endpoint: the account, or the AI gateway (API Management) in front of it.')
 param openAiEndpoint string
+
+@description('True when openAiEndpoint is the AI gateway: the API then tells it which user each model call is for.')
+param openAiViaGateway bool = false
+
+@description('Concurrent requests per API replica before another replica starts. A chat answer waits 10-30 s on the model, so a replica holds few at a time.')
+param apiConcurrentRequests int = 10
 
 @description('Azure OpenAI chat deployment name.')
 param chatDeployment string
@@ -195,6 +201,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             { name: 'LLM_PROVIDER', value: 'azure' }
             { name: 'AZURE_CLIENT_ID', value: identityClientId }
             { name: 'AZURE_OPENAI_ENDPOINT', value: openAiEndpoint }
+            { name: 'AZURE_OPENAI_VIA_GATEWAY', value: string(openAiViaGateway) }
             { name: 'AZURE_OPENAI_CHAT_DEPLOYMENT', value: chatDeployment }
             { name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT', value: embeddingDeployment }
             { name: 'AZURE_SEARCH_ENDPOINT', value: searchEndpoint }
@@ -218,9 +225,9 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       scale: {
         minReplicas: isProd ? 2 : 0
-        maxReplicas: isProd ? 10 : 3
+        maxReplicas: isProd ? 10 : 5
         rules: [
-          { name: 'http-scaling', http: { metadata: { concurrentRequests: '50' } } }
+          { name: 'http-scaling', http: { metadata: { concurrentRequests: string(apiConcurrentRequests) } } }
         ]
       }
     }

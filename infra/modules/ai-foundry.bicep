@@ -18,6 +18,15 @@ param containerAppPrincipalId string = ''
 @description('Enabled, or Disabled when the service is only reachable through its private endpoint (networkIsolation).')
 param publicNetworkAccess string = 'Enabled'
 
+@description('Appended to the account name: a second account in another region (the failover backend of the AI gateway) gets its own name.')
+param nameSuffix string = ''
+
+@description('Chat model capacity in thousands of tokens per minute (0 = the environment default). Global Standard capacity costs nothing until it is used.')
+param chatCapacityOverride int = 0
+
+@description('Also deploy gpt-4.1-mini-eval: evaluations get their own capacity, so they cannot throttle the app.')
+param deployEvalModel bool = false
+
 // ---------------------------------------------------------------------------
 // Variables
 // ---------------------------------------------------------------------------
@@ -29,13 +38,15 @@ var tags = {
 
 // Short hash of the resource group: these names must be globally unique in Azure.
 var suffix = take(uniqueString(resourceGroup().id), 5)
-var openAiName = 'oai-${projectName}-${environmentName}-${suffix}'
+var openAiName = 'oai-${projectName}-${environmentName}-${suffix}${nameSuffix}'
 
 // Built-in role: Cognitive Services OpenAI User
 var cognitiveServicesOpenAiUserRoleId = '5e0bd9bd-7b93-4f28-af87-19fc36ad61bd'
 
 // Capacity by environment (tokens-per-minute in thousands)
-var chatCapacity = environmentName == 'prod' ? 80 : (environmentName == 'staging' ? 40 : 30)
+var chatCapacity = chatCapacityOverride > 0
+  ? chatCapacityOverride
+  : (environmentName == 'prod' ? 80 : (environmentName == 'staging' ? 40 : 30))
 var embeddingCapacity = environmentName == 'prod' ? 120 : (environmentName == 'staging' ? 60 : 10)
 
 // ---------------------------------------------------------------------------
@@ -99,6 +110,30 @@ resource embeddingDeployment 'Microsoft.CognitiveServices/accounts/deployments@2
   }
   dependsOn: [
     chatDeployment // Deploy sequentially to avoid throttling
+  ]
+}
+
+// ---------------------------------------------------------------------------
+// Model Deployment: gpt-4.1-mini-eval (the evaluation gate's own capacity;
+// the incident drills showed an evaluation run throttling the app)
+// ---------------------------------------------------------------------------
+resource evalDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-04-01-preview' = if (deployEvalModel) {
+  parent: openAi
+  name: 'gpt-4.1-mini-eval'
+  sku: {
+    name: 'GlobalStandard'
+    capacity: 100
+  }
+  properties: {
+    model: {
+      format: 'OpenAI'
+      name: 'gpt-4.1-mini'
+      version: '2025-04-14'
+    }
+    raiPolicyName: 'Microsoft.DefaultV2'
+  }
+  dependsOn: [
+    embeddingDeployment
   ]
 }
 

@@ -13,6 +13,7 @@ from openai import AsyncAzureOpenAI, AsyncOpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from legalmind.config import get_azure_credential, get_settings
+from legalmind.services import model_gateway
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable
@@ -49,6 +50,7 @@ class AzureOpenAIService:
                 azure_endpoint=settings.openai.endpoint,
                 azure_ad_token_provider=self._get_token_provider(get_azure_credential()),
                 api_version=settings.openai.api_version,
+                http_client=model_gateway.http_client(),
             )
             self._chat_deployment = settings.openai.chat_deployment
             self._embedding_deployment = settings.openai.embedding_deployment

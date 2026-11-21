@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
+from openai import AsyncAzureOpenAI
 from semantic_kernel import Kernel
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
@@ -25,6 +26,7 @@ from semantic_kernel.connectors.ai.open_ai import (
 from semantic_kernel.contents import AuthorRole, ChatHistory, ChatMessageContent, FunctionCallContent
 
 from legalmind.config import get_azure_credential, get_settings
+from legalmind.services import model_gateway
 
 logger = structlog.get_logger(__name__)
 
@@ -168,12 +170,25 @@ class BaseAgent(abc.ABC):
 
         token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
 
+        # Through the AI gateway the SDK client also says which user each call is for
+        http_client = model_gateway.http_client()
+        async_client = (
+            AsyncAzureOpenAI(
+                azure_endpoint=settings.openai.endpoint,
+                azure_ad_token_provider=token_provider,
+                api_version=settings.openai.api_version,
+                http_client=http_client,
+            )
+            if http_client is not None
+            else None
+        )
         service = AzureChatCompletion(
             deployment_name=settings.openai.chat_deployment,
             endpoint=settings.openai.endpoint,
             ad_token_provider=token_provider,
             api_version=settings.openai.api_version,
             service_id="legalmind_chat",
+            async_client=async_client,
         )
         self._kernel.add_service(service)
 

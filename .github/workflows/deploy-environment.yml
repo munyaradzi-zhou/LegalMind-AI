@@ -44,6 +44,9 @@ jobs:
         id: deploy
         env:
           APIM_PUBLISHER_EMAIL: ${{ vars.APIM_PUBLISHER_EMAIL }}
+          # Matter number -> Entra group ID (scripts/setup_entra.sh), an environment variable:
+          # the index carries the group IDs, so the API must map matters to the same ones
+          MATTER_GROUPS: ${{ vars.MATTER_GROUPS || '{}' }}
         run: >-
           bash scripts/deploy.sh --environment "${{ inputs.environment }}" --tag "${{ inputs.sha }}"
           ${{ inputs.reapply_infra && '--reapply-infra' || '' }}
