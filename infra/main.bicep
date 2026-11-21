@@ -61,6 +61,25 @@ param apiAudience string = ''
 @description('Matter number -> Entra group object ID, as JSON (from scripts/setup_entra.sh).')
 param matterGroups string = '{}'
 
+@description('API Management tier. The AI gateway (token limits per user, failover) needs a dedicated tier; Consumption only fronts the API.')
+@allowed(['Consumption', 'Developer', 'BasicV2', 'StandardV2'])
+param apimSku string = 'Developer' // about €1.5 a day, no SLA: right for dev; prod would use StandardV2
+
+@description('Route the model calls of the app through API Management (token limits per user, token metrics, failover). Not with networkIsolation: this gateway is not in the VNet, so it cannot reach private endpoints.')
+param aiGateway bool = true
+
+@description('Region of the failover Azure OpenAI account behind the AI gateway. Empty = no failover backend.')
+param openAiSecondaryLocation string = ''
+
+@description('Chat model capacity in thousands of tokens per minute, on each account (0 = the environment default).')
+param chatCapacity int = 0
+
+@description('Tokens per minute per user at the AI gateway.')
+param userTokensPerMinute int = 60000
+
+@description('Semantic cache at the AI gateway (Azure Managed Redis, about €1-2 a day). Off by default.')
+param semanticCache bool = false
+
 @description('Object ID of whoever runs the deployment; granted Key Vault Secrets Officer to manage the MCP key.')
 param deployerPrincipalId string = ''
 
@@ -71,6 +90,14 @@ param deployerPrincipalType string = 'User'
 // Off: services answer on their public endpoints (Entra ID still required).
 // On: only through the private endpoints below.
 var publicNetworkAccess = networkIsolation ? 'Disabled' : 'Enabled'
+
+// The API needs the gateway URL before API Management exists (APIM's backend is the API),
+// so the name is derived here. Leaving Consumption means a new instance: tiers can't move
+// to or from Consumption in place.
+var apimName = apimSku == 'Consumption'
+  ? 'apim-${projectName}-${environmentName}-${take(uniqueString(resourceGroup().id), 5)}'
+  : 'apim-${projectName}-${environmentName}-${take(uniqueString(resourceGroup().id), 5)}-${toLower(apimSku)}'
+var gatewayOn = aiGateway && apimSku != 'Consumption' && !networkIsolation
 
 // =============================================================================
 // Network isolation (networkIsolation=true): VNet, private endpoints, DNS
@@ -121,6 +148,20 @@ module aiFoundry 'modules/ai-foundry.bicep' = {
     environmentName: environmentName
     projectName: projectName
     containerAppPrincipalId: appPrincipalId
+    chatCapacityOverride: chatCapacity
+    deployEvalModel: environmentName == 'dev' // the evaluation gate runs against dev
+  }
+}
+
+// Second region behind the AI gateway: same deployment names, so a call fails over unchanged
+module aiFoundrySecondary 'modules/ai-foundry.bicep' = if (gatewayOn && !empty(openAiSecondaryLocation)) {
+  name: 'ai-foundry-secondary-${environmentName}'
+  params: {
+    location: openAiSecondaryLocation
+    environmentName: environmentName
+    projectName: projectName
+    nameSuffix: '-b'
+    chatCapacityOverride: chatCapacity
   }
 }
 
@@ -230,7 +271,8 @@ module containerApps 'modules/container-apps.bicep' = {
     acrLoginServer: registry.outputs.loginServer
     apiImage: empty(apiImageTag) ? '' : '${registry.outputs.loginServer}/legalmind-api:${apiImageTag}'
     frontendImage: empty(frontendImageTag) ? '' : '${registry.outputs.loginServer}/legalmind-frontend:${frontendImageTag}'
-    openAiEndpoint: aiFoundry.outputs.openAiEndpoint
+    openAiEndpoint: gatewayOn ? 'https://${apimName}.azure-api.net/' : aiFoundry.outputs.openAiEndpoint
+    openAiViaGateway: gatewayOn
     chatDeployment: aiFoundry.outputs.chatDeploymentName
     embeddingDeployment: aiFoundry.outputs.embeddingDeploymentName
     searchEndpoint: aiSearch.outputs.searchEndpoint
@@ -304,17 +346,44 @@ module evaluatorAccess 'modules/evaluator-access.bicep' = if (deployerPrincipalT
 // =============================================================================
 // API Management (Consumption tier) in front of the API
 // =============================================================================
+module semanticCacheStore 'modules/semantic-cache.bicep' = if (gatewayOn && semanticCache) {
+  name: 'semantic-cache-${environmentName}'
+  params: {
+    location: location
+    environmentName: environmentName
+    projectName: projectName
+  }
+}
+
 module apiManagement 'modules/api-management.bicep' = {
   name: 'api-management-${environmentName}'
   params: {
     location: location
     environmentName: environmentName
-    projectName: projectName
+    name: apimName
+    sku: apimSku
     publisherEmail: apimPublisherEmail
     publisherName: apimPublisherName
     backendUrl: containerApps.outputs.apiUrl
     appInsightsId: monitoring.outputs.appInsightsId
     appInsightsInstrumentationKey: monitoring.outputs.appInsightsInstrumentationKey
+    aiGateway: gatewayOn
+    openAiPrimaryEndpoint: aiFoundry.outputs.openAiEndpoint
+    openAiSecondaryEndpoint: gatewayOn && !empty(openAiSecondaryLocation) ? aiFoundrySecondary!.outputs.openAiEndpoint : ''
+    appClientId: identity.outputs.clientId
+    userTokensPerMinute: userTokensPerMinute
+    semanticCacheRedisName: gatewayOn && semanticCache ? semanticCacheStore!.outputs.redisName : ''
+  }
+}
+
+module gatewayAccess 'modules/gateway-access.bicep' = if (gatewayOn) {
+  name: 'gateway-access-${environmentName}'
+  params: {
+    principalId: apiManagement.outputs.apimPrincipalId
+    openAiNames: concat(
+      [aiFoundry.outputs.openAiName],
+      !empty(openAiSecondaryLocation) ? [aiFoundrySecondary!.outputs.openAiName] : []
+    )
   }
 }
 
@@ -345,8 +414,11 @@ output mcpUrl string = containerApps.outputs.mcpUrl
 @description('API Management gateway URL.')
 output apimGatewayUrl string = apiManagement.outputs.apimGatewayUrl
 
-@description('Azure OpenAI endpoint.')
+@description('Azure OpenAI endpoint (the account itself, not the gateway).')
 output openAiEndpoint string = aiFoundry.outputs.openAiEndpoint
+
+@description('What the API calls for models: the AI gateway, or the account when the gateway is off.')
+output modelEndpoint string = gatewayOn ? 'https://${apimName}.azure-api.net/' : aiFoundry.outputs.openAiEndpoint
 
 @description('Azure AI Search endpoint.')
 output searchEndpoint string = aiSearch.outputs.searchEndpoint

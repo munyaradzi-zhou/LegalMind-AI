@@ -82,20 +82,34 @@ dependencies
 
 ## OpenAI throttling (`openai-429`, severity 2)
 
-**Means:** Azure OpenAI answered 429: the deployment's tokens-per-minute quota is used up. The SDK retries, so users first see slower answers, then errors.
+**Means:** the primary Azure OpenAI account answered 429: a deployment's tokens-per-minute quota is used up.
+
+- **Through the AI gateway (dev):** the gateway's circuit breaker takes the primary out of the pool for a minute (or for its `Retry-After`) and sends calls to the second region (`oai-…-b`). Users should see nothing; the alert says the primary is saturated, not that users are affected. Check the second region isn't throttled too (second query).
+- **Without the gateway:** the SDK retries, so users first see slower answers, then errors.
+- **A 429 from the gateway itself** (header `x-legalmind-user-tokens-remaining: 0`) is one user over their per-user token limit (`userTokensPerMinute`), not the model. That one doesn't fire this alert.
 
 **First query:** who is using the tokens?
 
 ```kusto
-dependencies
-| where timestamp > ago(1h) and isnotnull(customDimensions["gen_ai.usage.input_tokens"])
-| summarize calls = count(), input_tokens = sum(toint(customDimensions["gen_ai.usage.input_tokens"])),
-            output_tokens = sum(toint(customDimensions["gen_ai.usage.output_tokens"])) by bin(timestamp, 5m)
+customMetrics
+| where timestamp > ago(1h) and name == "Total Tokens"
+| summarize tokens = sum(valueSum) by user = tostring(customDimensions["User"]), deployment = tostring(customDimensions["Deployment"])
+| top 10 by tokens
 ```
 
-**Likely causes:** a traffic spike, an evaluation run against this environment (the evaluation gate uses dev's model deployment; it caused real throttling on 20 November), or a lowered deployment capacity.
+Without the gateway, the app's own spans: `dependencies | where isnotnull(customDimensions["gen_ai.usage.input_tokens"])`.
 
-**Fix:** check the deployment's capacity (`az cognitiveservices account deployment show -g rg-legalmind-<env> -n <openai account> --deployment-name gpt-4.1-mini --query sku`) against `chatCapacity` in `infra/modules/ai-foundry.bicep`; redeploying the infrastructure restores it. If the traffic is real, raise the capacity there.
+**Second query:** is the gateway failing over, and is the second region keeping up?
+
+```kusto
+dependencies
+| where timestamp > ago(1h) and cloud_RoleName has "apim"
+| summarize calls = count() by backend = target, resultCode, bin(timestamp, 5m)
+```
+
+**Likely causes:** a traffic spike, a load test, or a lowered deployment capacity. Evaluations use their own deployment (`gpt-4.1-mini-eval`) since L6, so they no longer throttle the app.
+
+**Fix:** check the deployment's capacity (`az cognitiveservices account deployment show -g rg-legalmind-<env> -n <openai account> --deployment-name gpt-4.1-mini --query sku`) against `chatCapacity` in `infra/parameters/<env>.bicepparam`; `deploy.sh --reapply-infra` restores it. If the traffic is real, raise the capacity there (Global Standard capacity costs nothing until used). A capacity change takes effect only after a few minutes (about 6 on 21 Nov 2026), so after raising it, wait before you judge the result. If both regions throttle, one user may be using it all: lower `userTokensPerMinute`.
 
 ---
 

@@ -26,6 +26,9 @@ class AzureOpenAISettings(BaseSettings):
     api_version: str = "2024-10-21"
     chat_deployment: str = "gpt-4.1-mini"
     embedding_deployment: str = "text-embedding-3-large"
+    # True when the endpoint is the AI gateway (API Management): model calls then say
+    # which user they are for, see services/model_gateway.py
+    via_gateway: bool = False
 
 
 class AzureSearchSettings(BaseSettings):

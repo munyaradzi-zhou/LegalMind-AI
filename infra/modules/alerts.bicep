@@ -206,6 +206,16 @@ var panels = [
     query: 'requests | where name has "/api/chat" | extend agent = tostring(customDimensions["legalmind.agent"]) | where isnotempty(agent) | summarize answers = count() by agent'
   }
   {
+    title: 'AI gateway: tokens per user (llm-emit-token-metric)'
+    visualization: 'table'
+    query: 'customMetrics | where name == "Total Tokens" | extend user = tostring(customDimensions["User"]), deployment = tostring(customDimensions["Deployment"]) | summarize tokens = sum(valueSum), calls = sum(valueCount) by user, deployment | top 20 by tokens'
+  }
+  {
+    title: 'AI gateway: model calls by backend (failover shows as calls to the second region)'
+    visualization: 'table'
+    query: 'dependencies | where cloud_RoleName has "apim" | summarize calls = count(), last = max(timestamp) by backend = target, resultCode | order by backend asc, calls desc'
+  }
+  {
     title: 'Top failing dependencies'
     visualization: 'table'
     query: 'dependencies | where success == false | summarize failures = count(), last = max(timestamp) by target, type, resultCode | top 10 by failures'
