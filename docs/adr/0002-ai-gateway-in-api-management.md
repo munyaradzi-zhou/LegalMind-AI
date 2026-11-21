@@ -56,5 +56,10 @@ With `networkIsolation` the gateway is off, because this gateway isn't in the VN
 - The per-user limit and the cache only work if the app sends the headers:
   `services/model_gateway.py` adds them to every call from both SDK clients (the app's
   and Semantic Kernel's) when `AZURE_OPENAI_VIA_GATEWAY=true`.
+- Measured on 21 Nov 2026 (`docs/load-test-2026-11-21.md`): the gateway moved traffic to the
+  second region when the primary was throttled, with no errors for users; throughput is
+  bounded by model capacity, not the gateway. The semantic cache answered only 18% of model
+  calls even on exact repeats, gave no speed gain and reused calls across different questions,
+  so it stays off.
 - The `openai-429` alert now means "the primary is saturated", not "users are affected";
   the runbook says how to tell the two apart.
