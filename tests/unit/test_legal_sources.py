@@ -263,3 +263,14 @@ async def test_a_source_that_is_down_is_reported_not_guessed(monkeypatch: pytest
 
 async def test_not_found_is_said_plainly(recorded: list[Any]) -> None:
     assert (await LegalSourcesTool().get_article("BW", "271")).startswith("NOT FOUND:")
+
+
+async def test_rulings_are_marked_anonymised(recorded: list[Any]) -> None:
+    # A published ruling is never a client's own case unless their documents cite it
+    # (on 21 Nov the agent presented ECLI:NL:RBROT:2025:1815 as a named client's case)
+    tool = LegalSourcesTool()
+    found = await tool.search_case_law("billijke vergoeding", area="Arbeidsrecht")
+    ruling = await tool.get_ruling("ECLI:NL:RBROT:2025:1815")
+    blocks = found.split("\n\n---\n\n")
+    assert blocks and all("Geanonimiseerde uitspraak: the parties are not named" in b for b in blocks)
+    assert "Geanonimiseerde uitspraak: the parties are not named" in ruling
