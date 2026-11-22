@@ -217,15 +217,6 @@ tests/          unit, integration, evaluation and load tests
 docs/           decision records, costs, runbook, postmortems
 ```
 
-## About this project
-
-I built LegalMind AI while preparing for an Azure AI Engineer role in Dutch legal services,
-to show an end-to-end, production-minded RAG and agent system on Azure. It is not
-affiliated with any company: the insurer, the law firm and every document in it are fictional.
-
-LegalMind AI is a demonstration, not legal advice. Its answers can be wrong and must be
-checked by a qualified professional.
-
 ## License
 
 [MIT](LICENSE) © Munyaradzi Zhou
